@@ -125,7 +125,7 @@ body::after {
 }
 
 /* Third orb via a wrapper pseudo-element */
-.app-body::before {
+.app-layout::after {
   content: '';
   position: fixed;
   width: 350px; height: 350px;
@@ -138,6 +138,17 @@ body::after {
   top: 50%; left: 45%;
   transform: translate(-50%, -50%);
   animation: orbFloat 24s ease-in-out infinite -4s;
+}
+
+/* Background image overlay */
+.app-layout::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('/static/img/workspace_background.png') no-repeat center center / cover;
+  opacity: 0.06;
+  z-index: -3;
+  pointer-events: none;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -1258,7 +1269,6 @@ textarea.form-input { resize: vertical; min-height: 90px; }
   box-shadow: var(--shadow-3d);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-}
   transition: all var(--transition);
   position: relative;
   overflow: hidden;

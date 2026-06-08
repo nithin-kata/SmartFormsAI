@@ -348,6 +348,16 @@
   z-index: 1;
 }
 
+.auth-right::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('/static/img/workspace_background.png') no-repeat center center / cover;
+  opacity: 0.06;
+  z-index: -1;
+  pointer-events: none;
+}
+
 .auth-form-container {
   width: 100%;
   max-width: 440px;

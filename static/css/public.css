@@ -4,7 +4,8 @@
    ============================================ */
 
 .public-body {
-  background: #f0f2f8;
+  background: linear-gradient(rgba(240, 242, 248, 0.94), rgba(240, 242, 248, 0.94)),
+              url('/static/img/workspace_background.png') no-repeat center center / cover fixed;
   min-height: 100vh;
   padding: 40px 16px;
   font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
