@@ -4,25 +4,48 @@
    ============================================ */
 
 .public-body {
-  background: radial-gradient(circle at 5% 5%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
-              radial-gradient(circle at 95% 95%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
-              radial-gradient(circle at 90% 10%, rgba(236, 72, 153, 0.1) 0%, transparent 35%),
-              #f8fafc;
+  background: #f0f2f8;
   min-height: 100vh;
   padding: 40px 16px;
   font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
   color: #0f172a;
   position: relative;
+  overflow-x: hidden;
+}
+
+/* Public page floating orbs */
+.public-body::before,
+.public-body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: -1;
+  animation: publicOrbFloat 18s ease-in-out infinite;
 }
 
 .public-body::before {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url('/static/img/workspace_background.png') no-repeat center center / cover;
-  opacity: 0.06;
-  z-index: -1;
-  pointer-events: none;
+  width: 450px; height: 450px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, transparent 70%);
+  top: -5%; left: -8%;
+  animation-duration: 22s;
+}
+
+.public-body::after {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.1) 50%, transparent 70%);
+  bottom: -8%; right: -5%;
+  animation-delay: -7s;
+  animation-duration: 20s;
+}
+
+@keyframes publicOrbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(35px, -25px) scale(1.04); }
+  50% { transform: translate(-15px, 20px) scale(0.96); }
+  75% { transform: translate(25px, 35px) scale(1.02); }
 }
 
 .public-container {
@@ -31,15 +54,15 @@
 }
 
 .public-form-card {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(24px) saturate(120%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
-  box-shadow: 0 30px 70px rgba(9, 13, 22, 0.08), 
-              0 10px 30px rgba(9, 13, 22, 0.04), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  box-shadow: 0 30px 70px rgba(9, 13, 22, 0.1), 
+              0 10px 30px rgba(9, 13, 22, 0.05), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.85);
   overflow: hidden;
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
 }
 
 .public-form-header {
@@ -309,16 +332,16 @@
 
 /* Success Page */
 .public-success-card {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(24px) saturate(120%);
-  -webkit-backdrop-filter: blur(24px) saturate(120%);
-  box-shadow: 0 30px 70px rgba(9, 13, 22, 0.08), 
-              0 10px 30px rgba(9, 13, 22, 0.04), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  box-shadow: 0 30px 70px rgba(9, 13, 22, 0.1), 
+              0 10px 30px rgba(9, 13, 22, 0.05), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.85);
   padding: 70px 48px;
   text-align: center;
-  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
 }
 
 .success-animation { margin-bottom: 32px; }
