@@ -1,0 +1,32 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+bin/
+include/
+lib/
+share/
+pyvenv.cfg
+
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local/Instance Files & Databases
+instance/
+*.db
+*.sqlite
+
+# Environment Configuration (Contains secret keys and API keys)
+.env
+
+# Local Helper Scripts
+powershell.bat
+
+# OS Generated Files
+.DS_Store
+Thumbs.db

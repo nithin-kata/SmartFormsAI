@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Response Submitted — {{ form.title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css?v=1.9">
+    <link rel="stylesheet" href="/static/css/public.css?v=1.9">
+</head>
+<body class="public-body">
+    <div class="public-container">
+        <div class="public-success-card">
+            <div class="success-animation">
+                <div class="success-circle">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                </div>
+            </div>
+            <h1>{{ form.success_message or 'Thank you for your response!' }}</h1>
+            <p>Your response has been recorded successfully.</p>
+            <div class="success-actions">
+                {% if form.allow_multiple_responses %}
+                <a href="/f/{{ form.slug }}" class="btn btn-ghost">Submit another response</a>
+                {% endif %}
+            </div>
+            <div class="public-footer">
+                <span>Powered by SmartForms AI</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% block title %}Responses — {{ form.title }}{% endblock %}
+{% block page_title %}Responses{% endblock %}
+
+{% block topbar_actions %}
+{% if form.is_published %}
+<button class="btn btn-ghost btn-sm" onclick="copyFormLink()" title="Copy shareable link">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+    Copy Link
+</button>
+{% endif %}
+<a href="/forms/{{ form.id }}/responses/export" class="btn btn-ghost btn-sm">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export CSV
+</a>
+<button class="btn btn-ai btn-sm" onclick="analyzeResponses()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    AI Analysis
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="responses-page">
+    <div class="responses-header">
+        <a href="/forms/{{ form.id }}/builder" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            {{ form.title }}
+        </a>
+        <div class="responses-stats">
+            <span class="responses-total"><strong>{{ total_responses }}</strong> total responses</span>
+        </div>
+    </div>
+
+    {% if question_stats %}
+    <!-- Per-Question Statistics Panel -->
+    <div class="question-stats-panel">
+        <div class="question-stats-header">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+            <span>Form Statistics — calculated individually for this form</span>
+        </div>
+        <div class="question-stats-grid">
+            {% for stat in question_stats %}
+            <div class="q-stat-card">
+                <div class="q-stat-header">
+                    <span class="q-stat-type-badge q-type-{{ stat.question_type }}">{{ stat.question_type.replace('_',' ') }}</span>
+                    <span class="q-stat-rate">{{ stat.response_rate }}% responded</span>
+                </div>
+                <p class="q-stat-question">{{ stat.question_text }}</p>
+
+                {% if stat.question_type == 'rating' and stat.get('avg') %}
+                <!-- Rating: show average + star distribution -->
+                <div class="q-stat-rating-avg">
+                    <span class="q-stat-avg-num">{{ stat.avg }}</span>
+                    <span class="q-stat-avg-label">/ 5 avg</span>
+                    <div class="q-stat-stars">
+                        {% for i in range(1, 6) %}
+                        <span class="mini-star {% if i <= stat.avg|int %}star-on{% endif %}">★</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="q-stat-bar-group">
+                    {% for star_val in ['5','4','3','2','1'] %}
+                    {% set cnt = stat.distribution.get(star_val, 0) %}
+                    {% set pct = (cnt / stat.answered * 100)|int if stat.answered else 0 %}
+                    <div class="q-stat-bar-row">
+                        <span class="q-stat-bar-label">{{ star_val }}★</span>
+                        <div class="q-stat-bar-track">
+                            <div class="q-stat-bar-fill q-bar-rating" style="width:{{ pct }}%"></div>
+                        </div>
+                        <span class="q-stat-bar-count">{{ cnt }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% elif stat.question_type in ('multiple_choice','checkboxes','dropdown','yes_no') and stat.get('distribution') %}
+                <!-- Choice: show option distribution -->
+                <div class="q-stat-bar-group">
+                    {% for opt, data in stat.distribution.items() %}
+                    <div class="q-stat-bar-row">
+                        <span class="q-stat-bar-label q-stat-bar-label-choice" title="{{ opt }}">{{ opt[:28] }}{% if opt|length > 28 %}…{% endif %}</span>
+                        <div class="q-stat-bar-track">
+                            <div class="q-stat-bar-fill q-bar-choice" style="width:{{ data.pct }}%"></div>
+                        </div>
+                        <span class="q-stat-bar-count">{{ data.count }} <span class="q-stat-pct">({{ data.pct }}%)</span></span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                {% else %}
+                <!-- Text/other: just show response count -->
+                <div class="q-stat-text-count">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                    {{ stat.answered }} text response{{ 's' if stat.answered != 1 else '' }} collected
+                </div>
+                {% endif %}
+
+                <div class="q-stat-footer">{{ stat.answered }} of {{ stat.total }} answered</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if responses %}
+    <div class="responses-table-wrap">
+        <table class="responses-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Submitted</th>
+                    {% for q in questions %}
+                    <th class="table-question-header">{{ q.question_text[:40] }}{% if q.question_text|length > 40 %}…{% endif %}</th>
+                    {% endfor %}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in responses %}
+                <tr class="response-row" onclick="window.location='/forms/{{ form.id }}/responses/{{ item.response.id }}'">
+                    <td class="response-id">#{{ item.response.id }}</td>
+                    <td class="response-date">{{ item.response.submitted_at | string | truncate(16, True, "") }}</td>
+                    {% for q in questions %}
+                    <td class="response-answer">
+                        {% set ans_val = '' %}
+                        {% for ans in item.answers %}
+                            {% if ans.question_id == q.id %}
+                                {% set ans_val = ans.answer_value %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if ans_val %}
+                        <span class="answer-preview">{{ ans_val[:50] }}{% if ans_val|length > 50 %}…{% endif %}</span>
+                        {% else %}
+                        <span class="answer-empty">—</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td onclick="event.stopPropagation()">
+                        <button class="btn btn-ghost btn-xs btn-danger" onclick="deleteResponse({{ item.response.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}<a href="?page={{ page - 1 }}" class="pagination-btn">← Previous</a>{% endif %}
+        <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}<a href="?page={{ page + 1 }}" class="pagination-btn">Next →</a>{% endif %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <h3>No responses yet</h3>
+        <p>{% if form.is_published %}Share your form link to start collecting responses.{% else %}Publish your form first to start collecting responses.{% endif %}</p>
+        {% if form.is_published %}
+        <button class="btn btn-primary" onclick='copyLink({{ (request.host_url ~ 'f/' ~ form.slug) | tojson }})'>Copy form link</button>
+        {% else %}
+        <a href="/forms/{{ form.id }}/builder" class="btn btn-primary">Go to builder</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- AI Analysis Panel -->
+<div class="ai-panel-overlay" id="aiPanel" style="display:none">
+    <div class="ai-panel">
+        <div class="ai-panel-header">
+            <h3>✨ AI Response Analysis</h3>
+            <button class="modal-close" onclick="closeAIPanel()">×</button>
+        </div>
+        <div class="ai-panel-body">
+            <div class="ai-loading" id="aiPanelLoading" style="display:none">
+                <div class="ai-spinner"></div>
+                <p>Analyzing {{ total_responses }} responses...</p>
+            </div>
+            <div id="aiPanelContent" class="ai-report-content"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const FORM_ID = {{ form.id }};
+
+function analyzeResponses() {
+    document.getElementById('aiPanel').style.display = 'flex';
+    document.getElementById('aiPanelLoading').style.display = 'flex';
+    document.getElementById('aiPanelContent').innerHTML = '';
+
+    fetch(`/api/forms/${FORM_ID}/analyze`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('aiPanelLoading').style.display = 'none';
+        if (data.success) {
+            document.getElementById('aiPanelContent').innerHTML = marked.parse(data.content);
+        } else {
+            document.getElementById('aiPanelContent').innerHTML = `<div class="error-msg">${data.error}</div>`;
+        }
+    });
+}
+
+function closeAIPanel() {
+    document.getElementById('aiPanel').style.display = 'none';
+}
+
+function deleteResponse(id) {
+    if (!confirm('Delete this response permanently?')) return;
+    fetch(`/forms/${FORM_ID}/responses/${id}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.success) location.reload(); });
+}
+
+function copyLink(url) {
+    navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
+}
+
+function copyFormLink() {
+    const url = '{{ request.host_url }}f/{{ form.slug }}';
+    navigator.clipboard.writeText(url).then(() => showToast('Form link copied to clipboard!'));
+}
+</script>
+{% endblock %}

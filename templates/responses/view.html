@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Response #{{ response.id }} — SmartForms AI{% endblock %}
+{% block page_title %}Response Detail{% endblock %}
+
+{% block content %}
+<div class="response-detail-page">
+    <div class="page-header-with-back">
+        <a href="/forms/{{ form.id }}/responses" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            All Responses
+        </a>
+        <div>
+            <h1>Response #{{ response.id }}</h1>
+            <span class="response-meta-info">{{ form.title }} · Submitted {{ response.submitted_at | string | truncate(16, True, "") }}</span>
+        </div>
+    </div>
+
+    <div class="response-answers-card">
+        {% for ans in answers %}
+        <div class="answer-item">
+            <div class="answer-question">
+                <span class="answer-q-num">{{ loop.index }}</span>
+                <span class="answer-q-text">{{ ans.question_text }}</span>
+                <span class="answer-q-type">{{ ans.question_type.replace('_', ' ').title() }}</span>
+            </div>
+            <div class="answer-value">
+                {% if ans.answer_value %}
+                    {% if ans.question_type == 'rating' %}
+                    <div class="rating-display">
+                        {% for i in range(1, 6) %}
+                        <span class="star {% if i <= ans.answer_value|int %}star-filled{% endif %}">★</span>
+                        {% endfor %}
+                        <span class="rating-number">{{ ans.answer_value }}/5</span>
+                    </div>
+                    {% elif ans.question_type == 'file_upload' %}
+                    <a href="/static/uploads/{{ ans.answer_value }}" target="_blank" class="file-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                        {{ ans.answer_value }}
+                    </a>
+                    {% else %}
+                    <span class="answer-text">{{ ans.answer_value }}</span>
+                    {% endif %}
+                {% else %}
+                <span class="answer-empty">Not answered</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

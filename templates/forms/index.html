@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}My Forms — SmartForms AI{% endblock %}
+{% block page_title %}My Forms{% endblock %}
+
+{% block topbar_actions %}
+<a href="/forms/new" class="btn btn-primary btn-sm">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    New Form
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="forms-page">
+    <!-- Controls -->
+    <div class="page-controls">
+        <form method="GET" class="search-form">
+            <div class="search-input-wrap">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="search" placeholder="Search forms..." value="{{ search }}" class="search-input">
+            </div>
+            <div class="filter-tabs">
+                <a href="?status=all{% if search %}&search={{ search }}{% endif %}" class="filter-tab {% if filter_status == 'all' %}active{% endif %}">All</a>
+                <a href="?status=published{% if search %}&search={{ search }}{% endif %}" class="filter-tab {% if filter_status == 'published' %}active{% endif %}">Published</a>
+                <a href="?status=draft{% if search %}&search={{ search }}{% endif %}" class="filter-tab {% if filter_status == 'draft' %}active{% endif %}">Drafts</a>
+            </div>
+        </form>
+    </div>
+
+    {% if forms %}
+    <div class="forms-grid">
+        {% for form in forms %}
+        <div class="form-card" data-form-id="{{ form.id }}">
+            <div class="form-card-header">
+                <div class="form-card-status">
+                    <span class="status-badge {% if form.is_published %}status-live{% else %}status-draft{% endif %}">
+                        {% if form.is_published %}
+                        <span class="status-dot"></span>Live
+                        {% else %}
+                        Draft
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="form-card-menu">
+                    <button class="menu-btn" onclick="toggleFormMenu(this)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="/forms/{{ form.id }}/builder" class="dropdown-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Edit
+                        </a>
+                        <a href="/forms/{{ form.id }}/responses" class="dropdown-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                            Responses
+                        </a>
+                        {% if form.is_published %}
+                        <a href="/f/{{ form.slug }}" target="_blank" class="dropdown-item">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            Preview
+                        </a>
+                        {% endif %}
+                        <form method="POST" action="/forms/{{ form.id }}/duplicate" style="margin:0">
+                            <button type="submit" class="dropdown-item">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                Duplicate
+                            </button>
+                        </form>
+                        <button class="dropdown-item dropdown-item-danger" onclick='deleteForm({{ form.id }}, {{ form.title | tojson }})'>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/></svg>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <a href="/forms/{{ form.id }}/builder" class="form-card-body">
+                <h3 class="form-card-title">{{ form.title }}</h3>
+                {% if form.description %}
+                <p class="form-card-desc">{{ form.description[:80] }}{% if form.description|length > 80 %}…{% endif %}</p>
+                {% else %}
+                <p class="form-card-desc form-card-desc-empty">No description</p>
+                {% endif %}
+            </a>
+            
+            <div class="form-card-footer">
+                <div class="form-card-stats">
+                    <span class="form-stat">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                        {{ form.response_count }} responses
+                    </span>
+                    <span class="form-stat">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                        {{ form.updated_at | string | truncate(10, True, "") }}
+                    </span>
+                </div>
+                <div class="form-card-quick">
+                    <button class="btn btn-ghost btn-xs" onclick="togglePublish({{ form.id }}, {{ form.is_published }}, this)">
+                        {{ 'Unpublish' if form.is_published else 'Publish' }}
+                    </button>
+                    {% if form.is_published %}
+                    <button class="btn btn-ghost btn-xs" onclick='copyLink({{ (request.host_url ~ 'f/' ~ form.slug) | tojson }})'>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                        Copy link
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        </div>
+        <h3>{% if search %}No forms found{% else %}No forms yet{% endif %}</h3>
+        <p>{% if search %}Try a different search term{% else %}Create your first form to start collecting responses{% endif %}</p>
+        {% if not search %}
+        <a href="/forms/new" class="btn btn-primary">Create your first form</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="deleteModal" style="display:none">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Delete Form</h3>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteFormName"></strong>? This will permanently delete all responses.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+            <form id="deleteForm" method="POST" style="margin:0">
+                <button type="submit" class="btn btn-danger">Delete permanently</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleFormMenu(btn) {
+    document.querySelectorAll('.dropdown-menu.open').forEach(m => { if (m !== btn.nextElementSibling) m.classList.remove('open'); });
+    btn.nextElementSibling.classList.toggle('open');
+}
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.form-card-menu')) document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+});
+
+function togglePublish(formId, isPublished, btn) {
+    fetch(`/forms/${formId}/publish`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            }
+        });
+}
+
+function copyLink(url) {
+    navigator.clipboard.writeText(url).then(() => showToast('Link copied to clipboard!'));
+}
+
+function deleteForm(id, name) {
+    document.getElementById('deleteFormName').textContent = name;
+    document.getElementById('deleteForm').action = `/forms/${id}/delete`;
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('deleteModal').style.display = 'none'; }
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ form.title }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css?v=1.9">
+    <link rel="stylesheet" href="/static/css/public.css?v=1.9">
+</head>
+<body class="public-body">
+    <div class="public-container">
+        <div class="public-form-card">
+            <!-- Header -->
+            <div class="public-form-header">
+                <div class="public-form-brand">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+                    SmartForms AI
+                </div>
+                <h1 class="public-form-title">{{ form.title }}</h1>
+                {% if form.description %}
+                <p class="public-form-desc">{{ form.description }}</p>
+                {% endif %}
+                {% if form.show_progress_bar %}
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <span class="progress-label" id="progressLabel">0 of {{ questions|length }} answered</span>
+                {% endif %}
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div style="padding: 0 32px;">
+                {% for category, message in messages %}
+                <div class="flash flash-{{ category }}"><span>{{ message }}</span></div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Form -->
+            <form method="POST" enctype="multipart/form-data" class="public-form" id="publicForm" novalidate>
+                <div class="public-questions">
+                    {% for q in questions %}
+                    <div class="public-question" data-question-id="{{ q.id }}" data-required="{{ q.is_required }}">
+                        <label class="public-question-label">
+                            {{ q.question_text }}
+                            {% if q.is_required %}<span class="required-star">*</span>{% endif %}
+                        </label>
+
+                        {% if q.question_type == 'short_text' %}
+                        <input type="text" name="q_{{ q.id }}" class="public-input"
+                               placeholder="{{ q.placeholder or 'Your answer...' }}"
+                               {% if q.is_required %}required{% endif %}>
+
+                        {% elif q.question_type == 'long_text' %}
+                        <textarea name="q_{{ q.id }}" class="public-input public-textarea" rows="4"
+                                  placeholder="{{ q.placeholder or 'Your answer...' }}"
+                                  {% if q.is_required %}required{% endif %}></textarea>
+
+                        {% elif q.question_type == 'email' %}
+                        <input type="email" name="q_{{ q.id }}" class="public-input"
+                               placeholder="{{ q.placeholder or 'your@email.com' }}"
+                               {% if q.is_required %}required{% endif %}>
+
+                        {% elif q.question_type == 'phone' %}
+                        <input type="tel" name="q_{{ q.id }}" class="public-input"
+                               placeholder="{{ q.placeholder or '+1 (555) 000-0000' }}"
+                               {% if q.is_required %}required{% endif %}>
+
+                        {% elif q.question_type == 'multiple_choice' %}
+                        <div class="public-options">
+                            {% for opt in q.options %}
+                            <label class="public-option">
+                                <input type="radio" name="q_{{ q.id }}" value="{{ opt }}"
+                                       {% if q.is_required %}required{% endif %}>
+                                <span class="option-radio-custom"></span>
+                                <span class="option-label">{{ opt }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        {% elif q.question_type == 'checkboxes' %}
+                        <div class="public-options">
+                            {% for opt in q.options %}
+                            <label class="public-option">
+                                <input type="checkbox" name="q_{{ q.id }}" value="{{ opt }}">
+                                <span class="option-checkbox-custom"></span>
+                                <span class="option-label">{{ opt }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        {% elif q.question_type == 'dropdown' %}
+                        <select name="q_{{ q.id }}" class="public-select"
+                                {% if q.is_required %}required{% endif %}>
+                            <option value="">Select an option...</option>
+                            {% for opt in q.options %}
+                            <option value="{{ opt }}">{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+
+                        {% elif q.question_type == 'rating' %}
+                        <div class="public-rating" data-name="q_{{ q.id }}">
+                            {% for i in range(1, 6) %}
+                            <button type="button" class="rating-star" data-value="{{ i }}" onclick="setRating('q_{{ q.id }}', {{ i }})">★</button>
+                            {% endfor %}
+                            <input type="hidden" name="q_{{ q.id }}" id="rating_q_{{ q.id }}"
+                                   {% if q.is_required %}required{% endif %}>
+                        </div>
+
+                        {% elif q.question_type == 'yes_no' %}
+                        <div class="public-yes-no">
+                            <label class="yes-no-option">
+                                <input type="radio" name="q_{{ q.id }}" value="Yes"
+                                       {% if q.is_required %}required{% endif %}>
+                                <span class="yes-no-btn yes-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+                                    Yes
+                                </span>
+                            </label>
+                            <label class="yes-no-option">
+                                <input type="radio" name="q_{{ q.id }}" value="No">
+                                <span class="yes-no-btn no-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    No
+                                </span>
+                            </label>
+                        </div>
+
+                        {% elif q.question_type == 'date' %}
+                        <input type="date" name="q_{{ q.id }}" class="public-input"
+                               {% if q.is_required %}required{% endif %}>
+
+                        {% elif q.question_type == 'file_upload' %}
+                        <div class="public-file-upload" onclick="document.getElementById('file_q_{{ q.id }}').click()">
+                            <input type="file" name="q_{{ q.id }}" id="file_q_{{ q.id }}"
+                                   style="display:none" onchange="showFileName(this)">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            <span class="upload-text" id="upload_q_{{ q.id }}">Click to upload file</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="public-submit">
+                    <button type="submit" class="public-submit-btn" id="submitBtn">
+                        Submit Response
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12,5 19,12 12,19"/></svg>
+                    </button>
+                    {% if not form.allow_multiple_responses %}
+                    <p class="submit-single-note">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        This form accepts one response per person
+                    </p>
+                    {% endif %}
+                </div>
+            </form>
+
+            <div class="public-footer">
+                <span>Powered by SmartForms AI</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/public.js"></script>
+    <script>
+    // ── Prevent double-submit ──────────────────────────
+    document.getElementById('publicForm').addEventListener('submit', function() {
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Submitting...';
+    });
+    </script>
+    <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .submit-single-note {
+        display: flex; align-items: center; gap: 5px;
+        font-size: 12px; color: #94a3b8; margin-top: 10px; justify-content: center;
+    }
+    </style>
+</body>
+</html>

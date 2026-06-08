@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}New Form — SmartForms AI{% endblock %}
+{% block page_title %}New Form{% endblock %}
+
+{% block content %}
+<div class="new-form-page">
+    <div class="new-form-header">
+        <a href="/forms" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            Back to Forms
+        </a>
+        <h1>Create a new form</h1>
+        <p>Start from scratch or let AI generate it for you</p>
+    </div>
+
+    <div class="new-form-options">
+        <!-- Manual Create -->
+        <div class="create-option" id="manualOption">
+            <div class="create-option-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
+            <h3>Start from scratch</h3>
+            <p>Build your form manually with full control over every question</p>
+            <form method="POST" id="manualForm" style="margin-top:20px">
+                <div class="form-group">
+                    <label class="form-label">Form title *</label>
+                    <input type="text" name="title" class="form-input" placeholder="e.g. Customer Feedback Survey" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-input" rows="2" placeholder="Brief description of your form..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Create Form →</button>
+            </form>
+        </div>
+
+        <div class="create-divider">
+            <span>or</span>
+        </div>
+
+        <!-- AI Generate -->
+        <div class="create-option create-option-ai" id="aiOption">
+            <div class="create-option-icon create-option-icon-ai">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2a10 10 0 110 20 10 10 0 010-20z"/><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
+            </div>
+            <div class="ai-badge">✨ AI Powered</div>
+            <h3>Generate with AI</h3>
+            <p>Describe what you need and AI will build the perfect form for you</p>
+            
+            <div class="ai-generator" style="margin-top:20px">
+                <div class="form-group">
+                    <label class="form-label">Describe your form</label>
+                    <textarea id="aiPrompt" class="form-input" rows="3" placeholder="e.g. Create an employee satisfaction survey with questions about work environment, management, and career growth"></textarea>
+                </div>
+                <div class="ai-prompts-suggestions">
+                    <span class="suggestions-label">Try:</span>
+                    <button type="button" class="suggestion-chip" onclick="setPrompt('Employee satisfaction survey with 8 questions')">Employee survey</button>
+                    <button type="button" class="suggestion-chip" onclick="setPrompt('Customer product feedback form')">Product feedback</button>
+                    <button type="button" class="suggestion-chip" onclick="setPrompt('Event registration form')">Event registration</button>
+                    <button type="button" class="suggestion-chip" onclick="setPrompt('Job application form for a software developer')">Job application</button>
+                </div>
+                <button type="button" class="btn btn-ai btn-full" onclick="generateForm()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    Generate Form with AI
+                </button>
+            </div>
+
+            <!-- AI Preview -->
+            <div class="ai-preview" id="aiPreview" style="display:none">
+                <div class="ai-preview-loading" id="aiLoading">
+                    <div class="ai-spinner"></div>
+                    <p>Generating your form...</p>
+                </div>
+                <div id="aiResult" style="display:none">
+                    <div class="ai-result-header">
+                        <h4 id="aiFormTitle"></h4>
+                        <p id="aiFormDesc"></p>
+                    </div>
+                    <div id="aiQuestionsList" class="ai-questions-preview"></div>
+                    <div class="ai-result-actions">
+                        <button class="btn btn-ghost" onclick="resetAI()">Try again</button>
+                        <button class="btn btn-ai" onclick="saveAIForm()">Use this form →</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let generatedFormData = null;
+
+function setPrompt(text) {
+    document.getElementById('aiPrompt').value = text;
+}
+
+function generateForm() {
+    const prompt = document.getElementById('aiPrompt').value.trim();
+    if (!prompt) {
+        showToast('Please describe your form first.', 'error');
+        return;
+    }
+
+    document.getElementById('aiPreview').style.display = 'block';
+    document.getElementById('aiLoading').style.display = 'flex';
+    document.getElementById('aiResult').style.display = 'none';
+
+    fetch('/api/forms/ai-generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('aiLoading').style.display = 'none';
+        if (data.success) {
+            generatedFormData = data.data;
+            document.getElementById('aiFormTitle').textContent = data.data.title;
+            document.getElementById('aiFormDesc').textContent = data.data.description;
+            
+            const list = document.getElementById('aiQuestionsList');
+            list.innerHTML = data.data.questions.map((q, i) => `
+                <div class="ai-question-preview-item">
+                    <span class="ai-q-num">${i+1}</span>
+                    <div class="ai-q-content">
+                        <span class="ai-q-text">${q.question_text}</span>
+                        <span class="ai-q-type">${q.question_type.replace('_', ' ')} ${q.is_required ? '· Required' : ''}</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('aiResult').style.display = 'block';
+        } else {
+            showToast(data.error || 'Failed to generate form. Check your API key in Settings.', 'error');
+            document.getElementById('aiPreview').style.display = 'none';
+        }
+    })
+    .catch(() => {
+        document.getElementById('aiLoading').style.display = 'none';
+        document.getElementById('aiPreview').style.display = 'none';
+        showToast('Failed to connect. Please try again.', 'error');
+    });
+}
+
+function resetAI() {
+    generatedFormData = null;
+    document.getElementById('aiPreview').style.display = 'none';
+}
+
+function saveAIForm() {
+    if (!generatedFormData) return;
+    
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    // Store AI questions in sessionStorage to load in builder
+    sessionStorage.setItem('aiQuestions', JSON.stringify(generatedFormData.questions));
+
+    // Submit form to create the form with the correct title
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/forms/new';
+    
+    const titleInput = document.createElement('input');
+    titleInput.name = 'title';
+    titleInput.value = generatedFormData.title;
+    form.appendChild(titleInput);
+    
+    const descInput = document.createElement('input');
+    descInput.name = 'description';
+    descInput.value = generatedFormData.description || '';
+    form.appendChild(descInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — SmartForms AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css?v=1.9">
+    <link rel="stylesheet" href="/static/css/auth.css?v=1.9">
+</head>
+<body class="auth-body">
+    <div class="auth-layout">
+        <div class="auth-left">
+            <div class="auth-brand">
+                <div class="auth-logo">
+                    <svg class="logo-icon-svg animated-logo" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <!-- Outer document boundary -->
+                        <path d="M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                        <!-- Three checkmark lines -->
+                        <line class="logo-line logo-line-1" x1="9" y1="8" x2="15" y2="8" />
+                        <line class="logo-line logo-line-2" x1="9" y1="12" x2="15" y2="12" />
+                        <line class="logo-line logo-line-3" x1="9" y1="16" x2="15" y2="16" />
+                    </svg>
+                    <span>SmartForms AI</span>
+                </div>
+            </div>
+            <div class="auth-hero">
+                <h1 class="auth-headline">Start building forms in minutes</h1>
+                <p class="auth-subtext">Join thousands of teams using SmartForms AI to collect better data and gain deeper insights.</p>
+                <div class="auth-features">
+                    <div class="auth-feature">
+                        <div class="feature-dot feature-dot-purple"></div>
+                        <span>Free to get started</span>
+                    </div>
+                    <div class="auth-feature">
+                        <div class="feature-dot feature-dot-blue"></div>
+                        <span>No credit card required</span>
+                    </div>
+                    <div class="auth-feature">
+                        <div class="feature-dot feature-dot-green"></div>
+                        <span>AI-ready from day one</span>
+                    </div>
+                </div>
+            </div>
+            <div class="auth-mockup-wrapper">
+                <div class="mockup-orb mockup-orb-1"></div>
+                <div class="mockup-orb mockup-orb-2"></div>
+                
+                <!-- Mockup App Window -->
+                <div class="mockup-window mockup-form-editor">
+                    <div class="window-header">
+                        <div class="window-dot red"></div>
+                        <div class="window-dot yellow"></div>
+                        <div class="window-dot green"></div>
+                        <span class="window-title">form_builder.config</span>
+                    </div>
+                    <div class="window-body">
+                        <div class="mockup-form-item">
+                            <span class="mockup-label">Question 1</span>
+                            <div class="mockup-field">Overall Satisfaction</div>
+                            <div class="mockup-stars">
+                                <span class="active">★</span><span class="active">★</span><span class="active">★</span><span class="active">★</span><span>★</span>
+                            </div>
+                        </div>
+                        <div class="mockup-form-item">
+                            <span class="mockup-label">Question 2</span>
+                            <div class="mockup-field">Tell us your feedback...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mockup AI Analytics Card -->
+                <div class="mockup-card mockup-ai-card">
+                    <div class="ai-card-header">
+                        <svg class="ai-sparkle" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        <span>AI Insights</span>
+                    </div>
+                    <div class="ai-card-stat">
+                        <span class="ai-num">∞</span>
+                        <span class="ai-label">Possibilities</span>
+                    </div>
+                    <div class="ai-progress">
+                        <div class="ai-progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <!-- Mockup Floating Feedback Tag -->
+                <div class="mockup-tag mockup-feedback-tag">
+                    <span class="tag-avatar">A</span>
+                    <div class="tag-details">
+                        <span class="tag-user">Alex J.</span>
+                        <span class="tag-msg">Form generated in 3s! ⚡</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="auth-right">
+            <div class="auth-form-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">
+                        <span>{{ message }}</span>
+                        <button onclick="this.parentElement.remove()">×</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+                
+                <div class="auth-form-header">
+                    <h2>Create your account</h2>
+                    <p>Start building powerful forms today</p>
+                </div>
+                
+                <form method="POST" class="auth-form">
+                    <div class="form-group">
+                        <label class="form-label">Full name</label>
+                        <input type="text" name="name" class="form-input" placeholder="Alex Johnson" value="{{ name or '' }}" required autocomplete="name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Work email</label>
+                        <input type="email" name="email" class="form-input" placeholder="you@company.com" value="{{ email or '' }}" required autocomplete="email">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Password</label>
+                            <div class="input-with-toggle">
+                                <input type="password" name="password" id="passwordInput" class="form-input" placeholder="Min. 6 characters" required>
+                                <button type="button" class="input-toggle-btn" onclick="togglePassword('passwordInput', this)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Confirm password</label>
+                            <input type="password" name="confirm_password" class="form-input" placeholder="Repeat password" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Create account</button>
+                </form>
+                
+                <p class="auth-switch">Already have an account? <a href="/login">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function togglePassword(id, btn) {
+            const input = document.getElementById(id);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+    </script>
+</body>
+</html>

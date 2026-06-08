@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Settings — {{ form.title }}{% endblock %}
+{% block page_title %}Form Settings{% endblock %}
+
+{% block content %}
+<div class="settings-form-page">
+    <div class="page-header-with-back">
+        <a href="/forms/{{ form.id }}/builder" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15,18 9,12 15,6"/></svg>
+            Back to Builder
+        </a>
+        <h1>Form Settings</h1>
+    </div>
+
+    <div class="settings-card-form">
+        <form method="POST">
+            <div class="form-group">
+                <label class="form-label">Form title *</label>
+                <input type="text" name="title" class="form-input" value="{{ form.title }}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-input" rows="3">{{ form.description or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Success message</label>
+                <input type="text" name="success_message" class="form-input" value="{{ form.success_message }}">
+                <span class="form-hint">Shown after a successful submission</span>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Multiple responses</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="allow_multiple_responses" {% if form.allow_multiple_responses %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="form-hint">Allow the same person to submit multiple times</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Progress bar</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="show_progress_bar" {% if form.show_progress_bar %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="form-hint">Show progress indicator while filling form</span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <a href="/forms/{{ form.id }}/builder" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

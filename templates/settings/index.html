@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Settings — SmartForms AI{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}"><span>{{ message }}</span><button onclick="this.parentElement.remove()">×</button></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="settings-grid">
+        <!-- Profile -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-card-icon settings-icon-blue">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div>
+                    <h3>Profile</h3>
+                    <p>Update your personal information</p>
+                </div>
+            </div>
+            <form method="POST" class="settings-form">
+                <input type="hidden" name="action" value="profile">
+                <div class="form-group">
+                    <label class="form-label">Full name</label>
+                    <input type="text" name="name" class="form-input" value="{{ user.name }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email address</label>
+                    <input type="email" name="email" class="form-input" value="{{ user.email }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Member since</label>
+                    <input type="text" class="form-input" value="{{ user.created_at | string | truncate(10, True, '') }}" disabled>
+                </div>
+                <button type="submit" class="btn btn-primary">Save profile</button>
+            </form>
+        </div>
+
+        <!-- Password -->
+        <div class="settings-card">
+            <div class="settings-card-header">
+                <div class="settings-card-icon settings-icon-orange">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div>
+                    <h3>Security</h3>
+                    <p>Change your password</p>
+                </div>
+            </div>
+            <form method="POST" class="settings-form">
+                <input type="hidden" name="action" value="password">
+                <div class="form-group">
+                    <label class="form-label">Current password</label>
+                    <input type="password" name="current_password" class="form-input" placeholder="Enter current password" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New password</label>
+                    <input type="password" name="new_password" id="newPasswordInput" class="form-input"
+                           placeholder="Min. 6 characters" oninput="checkStrength(this.value)" required>
+                    <div class="pw-strength-bar-wrap" id="pwStrengthWrap" style="display:none;margin-top:6px;">
+                        <div class="pw-strength-bar">
+                            <div class="pw-strength-fill" id="pwStrengthFill"></div>
+                        </div>
+                        <span class="pw-strength-label" id="pwStrengthLabel"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm new password</label>
+                    <input type="password" name="confirm_password" class="form-input" placeholder="Repeat new password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Update password</button>
+            </form>
+        </div>
+
+        <!-- AI Configuration -->
+        <div class="settings-card settings-card-ai">
+            <div class="settings-card-header">
+                <div class="settings-card-icon settings-icon-purple">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div>
+                    <h3>AI Configuration</h3>
+                    <p>Manage AI features for form generation &amp; analysis</p>
+                </div>
+            </div>
+
+            <!-- AI Status Badges -->
+            <div class="ai-key-status" style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+                {% if ai_status == 'gemini' %}
+                <div class="key-status key-status-active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                    ✨ Google Gemini AI — Active
+                    {% if env_gemini_key %}<span style="opacity:.6; font-size:.8em;">(key loaded from .env)</span>{% endif %}
+                </div>
+                {% else %}
+                <div class="key-status key-status-inactive">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    No Gemini API key — using built-in engine
+                </div>
+                {% endif %}
+                <div class="key-status key-status-active">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                    🛡️ Built-in Template Engine — Always available (no API needed)
+                </div>
+            </div>
+
+            <!-- Optional: personal Gemini key -->
+            <form method="POST" class="settings-form">
+                <input type="hidden" name="action" value="api_key">
+                <div class="form-group">
+                    <label class="form-label">Personal Gemini API Key <span style="opacity:.5;font-weight:400">(optional)</span></label>
+                    <div class="input-with-toggle">
+                        <input type="password" name="groq_api_key" id="geminiKeyInput" class="form-input"
+                               value="{{ user.groq_api_key or '' }}"
+                               placeholder="AIza...">
+                        <button type="button" class="input-toggle-btn" onclick="togglePassword('geminiKeyInput', this)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <span class="form-hint">
+                        Get a free key at
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">aistudio.google.com</a>
+                        — Gemini 1.5 Flash is free (1M tokens/day). Leave blank to use the built-in engine.
+                    </span>
+                </div>
+                <button type="submit" class="btn btn-primary">Save API key</button>
+            </form>
+
+            <div class="ai-features-list">
+                <p class="ai-features-title">AI features available:</p>
+                <div class="ai-feature-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                    Generate forms from natural language prompts
+                </div>
+                <div class="ai-feature-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                    AI-powered response analysis &amp; insights
+                </div>
+                <div class="ai-feature-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>
+                    Sentiment analysis and recommendations
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="settings-card settings-card-danger">
+            <div class="settings-card-header">
+                <div class="settings-card-icon settings-icon-red">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div>
+                    <h3>Danger Zone</h3>
+                    <p>Irreversible actions</p>
+                </div>
+            </div>
+            <div class="danger-actions">
+                <div class="danger-action-item">
+                    <div>
+                        <strong>Sign out everywhere</strong>
+                        <p>End all active sessions</p>
+                    </div>
+                    <a href="/logout" class="btn btn-danger-outline btn-sm">Sign out</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function checkStrength(pw) {
+    const wrap = document.getElementById('pwStrengthWrap');
+    const fill = document.getElementById('pwStrengthFill');
+    const label = document.getElementById('pwStrengthLabel');
+    if (!pw) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'flex';
+
+    let score = 0;
+    if (pw.length >= 6)  score++;
+    if (pw.length >= 10) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const levels = [
+        { pct: '20%', color: '#ef4444', text: 'Weak' },
+        { pct: '40%', color: '#f59e0b', text: 'Fair' },
+        { pct: '60%', color: '#f59e0b', text: 'Fair' },
+        { pct: '80%', color: '#10b981', text: 'Strong' },
+        { pct: '100%', color: '#6366f1', text: 'Very Strong' }
+    ];
+    const lvl = levels[Math.min(score, 4)];
+    fill.style.width = lvl.pct;
+    fill.style.background = lvl.color;
+    label.textContent = lvl.text;
+    label.style.color = lvl.color;
+}
+</script>
+<style>
+.pw-strength-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.pw-strength-bar {
+    flex: 1; height: 5px; background: var(--bg-secondary);
+    border-radius: 3px; overflow: hidden;
+}
+.pw-strength-fill { height: 100%; width: 0; border-radius: 3px; transition: width .3s, background .3s; }
+.pw-strength-label { font-size: 11px; font-weight: 700; white-space: nowrap; }
+</style>
+{% endblock %}
