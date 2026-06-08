@@ -1,4 +1,4 @@
-from flask import Flask, abort
+from flask import Flask
 from database import init_db
 from routes.auth import auth_bp
 from routes.dashboard import dashboard_bp
@@ -35,6 +35,8 @@ def create_app():
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file upload
     app.config['DATABASE'] = os.path.join(os.path.dirname(__file__), 'instance', 'smartforms.db')
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(os.path.join(os.path.dirname(__file__), 'instance'), exist_ok=True)
@@ -54,64 +56,6 @@ def create_app():
     return app
 
 app = create_app()
-
-# ── Debug route: visit http://localhost:5000/debug/test-groq in your browser ──
-@app.route('/debug/test-groq')
-def debug_test_groq():
-    import urllib.request, urllib.error, json
-    if os.environ.get('ENABLE_DEBUG_ROUTES') != '1':
-        abort(404)
-
-    results = []
-
-    # 1. Check .env loading
-    api_key = os.environ.get('GROQ_API_KEY', '')
-    if api_key:
-        results.append(f"✅ GROQ_API_KEY loaded from .env: {api_key[:8]}...{api_key[-4:]}")
-    else:
-        results.append("❌ GROQ_API_KEY is EMPTY — .env was not loaded or key is missing")
-        return '<br>'.join(results)
-
-    # 2. Test: list models
-    try:
-        req = urllib.request.Request(
-            "https://api.groq.com/openai/v1/models",
-            headers={'Authorization': f'Bearer {api_key}'},
-            method='GET'
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode())
-            models = sorted([m['id'] for m in data.get('data', [])])
-            results.append(f"✅ API key is VALID — {len(models)} models available")
-            results.append("Models: " + ", ".join(models[:15]))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        results.append(f"❌ List models failed — HTTP {e.code}: {body[:300]}")
-        return '<br>'.join(results)
-
-    # 3. Test: chat completion with llama-3.1-8b-instant
-    try:
-        payload = json.dumps({
-            "model": "llama-3.1-8b-instant",
-            "messages": [{"role": "user", "content": "Say hello in one word."}],
-            "max_tokens": 10
-        }).encode()
-        req2 = urllib.request.Request(
-            "https://api.groq.com/openai/v1/chat/completions",
-            data=payload,
-            headers={'Authorization': f'Bearer {api_key}', 'Content-Type': 'application/json'},
-            method='POST'
-        )
-        with urllib.request.urlopen(req2, timeout=15) as resp:
-            data = json.loads(resp.read().decode())
-            reply = data['choices'][0]['message']['content']
-            results.append(f"✅ Chat completion works! Model replied: '{reply}'")
-    except urllib.error.HTTPError as e:
-        body = e.read().decode()
-        results.append(f"❌ Chat completion failed — HTTP {e.code}: {body[:300]}")
-
-    results.append("<br>🎉 If all checks passed, restart Flask (Ctrl+C then python app.py) and try AI features again.")
-    return '<br>'.join(results)
 
 if __name__ == '__main__':
     debug = os.environ.get('FLASK_DEBUG') == '1'
