@@ -97,8 +97,15 @@
     <div class="dashboard-grid">
         <!-- Recent Forms -->
         <div class="dashboard-card card-wide">
-            <div class="card-header">
-                <h3 class="card-title">Recent Forms</h3>
+            <div class="chart-header-v2">
+                <div class="chart-title-group">
+                    <div class="chart-icon chart-icon-indigo">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12h6M9 16h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+                    </div>
+                    <div class="chart-title-text">
+                        <h3>Recent Forms</h3>
+                    </div>
+                </div>
                 <a href="/forms" class="card-link">View all →</a>
             </div>
             {% if recent_forms %}
@@ -130,18 +137,32 @@
 
         <!-- Response Trend -->
         <div class="dashboard-card">
-            <div class="card-header">
-                <h3 class="card-title">Response Trend</h3>
-                <span class="card-subtitle">Last 7 days</span>
+            <div class="chart-header-v2">
+                <div class="chart-title-group">
+                    <div class="chart-icon chart-icon-emerald">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-5 5"/></svg>
+                    </div>
+                    <div class="chart-title-text">
+                        <h3>Response Trend</h3>
+                        <span>Last 7 days</span>
+                    </div>
+                </div>
             </div>
             <canvas id="trendChart" height="180"></canvas>
         </div>
 
         <!-- Recent Activity -->
         <div class="dashboard-card">
-            <div class="card-header">
-                <h3 class="card-title">Recent Responses</h3>
-                <span class="card-subtitle">Latest activity</span>
+            <div class="chart-header-v2">
+                <div class="chart-title-group">
+                    <div class="chart-icon chart-icon-amber">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+                    </div>
+                    <div class="chart-title-text">
+                        <h3>Recent Responses</h3>
+                        <span>Latest activity</span>
+                    </div>
+                </div>
             </div>
             {% if recent_responses %}
             <div class="activity-list">
@@ -168,6 +189,17 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
+// Dynamic greeting
+(function() {
+    const el = document.getElementById('greeting-text');
+    if (!el) return;
+    const hour = new Date().getHours();
+    let greeting = 'Good evening';
+    if (hour < 12) greeting = 'Good morning';
+    else if (hour < 17) greeting = 'Good afternoon';
+    el.textContent = greeting + (el.dataset.suffix || '');
+})();
+
 const trendData = {{ response_trend | tojson }};
 
 // Prepare last 7 days
@@ -184,8 +216,9 @@ trendData.forEach(r => { if (counts.hasOwnProperty(r.day)) counts[r.day] = r.cou
 
 const ctx = document.getElementById('trendChart').getContext('2d');
 const gradient = ctx.createLinearGradient(0, 0, 0, 180);
-gradient.addColorStop(0, 'rgba(99,102,241,0.2)');
-gradient.addColorStop(1, 'rgba(99,102,241,0)');
+gradient.addColorStop(0, 'rgba(79, 70, 229, 0.18)');
+gradient.addColorStop(0.5, 'rgba(124, 58, 237, 0.06)');
+gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
 
 new Chart(ctx, {
     type: 'line',
@@ -195,21 +228,42 @@ new Chart(ctx, {
             data: Object.values(counts),
             borderColor: '#6366f1',
             backgroundColor: gradient,
-            borderWidth: 2,
+            borderWidth: 2.5,
             fill: true,
             tension: 0.4,
             pointBackgroundColor: '#6366f1',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
             pointRadius: 3,
-            pointHoverRadius: 5
+            pointHoverRadius: 6,
+            pointHoverBorderWidth: 3,
+            pointHoverBackgroundColor: '#6366f1',
+            pointHoverBorderColor: '#ffffff'
         }]
     },
     options: {
         responsive: true,
-        plugins: { legend: { display: false } },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(9, 13, 22, 0.9)',
+                titleFont: { family: 'Sora', size: 12, weight: '700' },
+                bodyFont: { family: 'Space Grotesk', size: 13, weight: '600' },
+                padding: 12,
+                cornerRadius: 10,
+                displayColors: false,
+                callbacks: {
+                    title: items => `Date: ${items[0].label}`,
+                    label: item => `${item.raw} response${item.raw !== 1 ? 's' : ''}`
+                }
+            }
+        },
         scales: {
             x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Plus Jakarta Sans' }, color: '#94a3b8' } },
-            y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11, family: 'Plus Jakarta Sans' }, color: '#94a3b8', stepSize: 1 }, beginAtZero: true }
-        }
+            y: { grid: { color: 'rgba(226, 232, 240, 0.4)', drawBorder: false }, ticks: { font: { size: 11, family: 'Plus Jakarta Sans' }, color: '#94a3b8', stepSize: 1 }, beginAtZero: true }
+        },
+        animation: { duration: 1000, easing: 'easeOutQuart' }
     }
 });
 </script>

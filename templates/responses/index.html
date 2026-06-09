@@ -32,67 +32,94 @@
     </div>
 
     {% if total_responses > 0 %}
-    <!-- Google Forms style navigation tabs -->
-    <div class="responses-tabs-wrap" style="display:flex; border-bottom: 2px solid rgba(255, 255, 255, 0.2); margin-bottom: 28px; gap: 8px;">
-        <button class="responses-tab-btn active" id="tabBtnSummary" onclick="switchTab('summary')" style="background:none; border:none; padding:12px 24px; font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-secondary); cursor:pointer; position:relative; transition:all var(--transition); border-bottom:3px solid transparent;">Summary</button>
-        <button class="responses-tab-btn" id="tabBtnIndividual" onclick="switchTab('individual')" style="background:none; border:none; padding:12px 24px; font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-secondary); cursor:pointer; position:relative; transition:all var(--transition); border-bottom:3px solid transparent;">Individual</button>
+    <!-- Pill-style navigation tabs -->
+    <div class="responses-tabs-v2" id="tabsContainer">
+        <div class="tab-slider" id="tabSlider"></div>
+        <button class="tab-pill active" id="tabBtnSummary" onclick="switchTab('summary')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+            Summary
+            <span class="tab-pill-count">{{ question_stats|length }}</span>
+        </button>
+        <button class="tab-pill" id="tabBtnIndividual" onclick="switchTab('individual')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Individual
+        </button>
     </div>
 
     <!-- ============ SUMMARY VIEW ============ -->
     <div id="tabContentSummary">
         {% if question_stats %}
-        <div class="question-stats-panel" style="background:transparent; border:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; margin-bottom:0;">
-            <div class="question-stats-grid">
-                {% for stat in question_stats %}
-                <div class="q-stat-card">
-                    <div class="q-stat-header">
-                        <span class="q-stat-type-badge q-type-{{ stat.question_type }}">{{ stat.question_type.replace('_',' ') }}</span>
-                        <span class="q-stat-rate">{{ stat.response_rate }}% responded</span>
+        <div class="question-stats-grid-v2">
+            {% for stat in question_stats %}
+            <div class="q-stat-card-v2">
+                <div class="q-stat-header-v2">
+                    <div class="q-num-badge">Q{{ loop.index }}</div>
+                    <div class="q-header-info">
+                        <div class="q-header-top">
+                            <span class="q-stat-type-badge q-type-{{ stat.question_type }}">
+                                {% if stat.question_type == 'rating' %}★{% elif stat.question_type == 'multiple_choice' %}◉{% elif stat.question_type == 'checkboxes' %}☑{% elif stat.question_type == 'yes_no' %}✓{% elif stat.question_type == 'dropdown' %}▾{% else %}✎{% endif %}
+                                {{ stat.question_type.replace('_',' ') }}
+                            </span>
+                        </div>
+                        <p class="q-stat-question-v2">{{ stat.question_text }}</p>
                     </div>
-                    <p class="q-stat-question">{{ stat.question_text }}</p>
-
-                    {% if stat.question_type == 'rating' and stat.get('avg') %}
-                    <div style="display:flex; flex-direction:column; gap:20px; align-items:center;">
-                        <div class="q-stat-rating-avg" style="margin-bottom:0; width:100%; justify-content:center;">
-                            <span class="q-stat-avg-num">{{ stat.avg }}</span>
-                            <span class="q-stat-avg-label">/ 5 avg</span>
-                            <div class="q-stat-stars">
-                                {% for i in range(1, 6) %}
-                                <span class="mini-star {% if i <= stat.avg|int %}star-on{% endif %}">★</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        <div class="chart-canvas-wrap" style="position:relative; height:200px; width:100%; max-width:350px;">
-                            <canvas id="chart_{{ stat.question_id }}"></canvas>
-                        </div>
+                    <div class="progress-ring-wrap">
+                        <svg class="progress-ring" viewBox="0 0 48 48">
+                            <circle class="progress-ring-bg" cx="24" cy="24" r="20"/>
+                            <circle class="progress-ring-fill {% if stat.response_rate >= 80 %}progress-ring-fill-green{% elif stat.response_rate >= 50 %}progress-ring-fill-accent{% else %}progress-ring-fill-orange{% endif %}"
+                                cx="24" cy="24" r="20"
+                                stroke-dasharray="125.66"
+                                stroke-dashoffset="{{ 125.66 - (125.66 * stat.response_rate / 100) }}"
+                                data-target-offset="{{ 125.66 - (125.66 * stat.response_rate / 100) }}"
+                            />
+                        </svg>
+                        <span class="progress-ring-text">{{ stat.response_rate }}%</span>
                     </div>
+                </div>
 
-                    {% elif stat.question_type in ('multiple_choice','checkboxes','dropdown','yes_no') and stat.get('distribution') %}
-                    <div style="display:flex; flex-direction:column; gap:20px; align-items:center;">
-                        <div class="chart-canvas-wrap" style="position:relative; height:220px; width:100%; max-width:320px;">
-                            <canvas id="chart_{{ stat.question_id }}"></canvas>
-                        </div>
-                        <div class="q-stat-bar-group" style="width:100%; max-width:480px;">
-                            {% for opt, data in stat.distribution.items() %}
-                            <div class="q-stat-bar-row">
-                                <span class="q-stat-bar-label q-stat-bar-label-choice" title="{{ opt }}">{{ opt[:28] }}{% if opt|length > 28 %}…{% endif %}</span>
-                                <span class="q-stat-bar-count" style="margin-left:auto;">{{ data.count }} <span class="q-stat-pct">({{ data.pct }}%)</span></span>
-                            </div>
+                {% if stat.question_type == 'rating' and stat.get('avg') %}
+                <div class="q-stat-body-v2">
+                    <div class="q-stat-rating-avg" style="margin-bottom:0; width:100%; justify-content:center;">
+                        <span class="q-stat-avg-num">{{ stat.avg }}</span>
+                        <span class="q-stat-avg-label">/ 5 avg</span>
+                        <div class="q-stat-stars">
+                            {% for i in range(1, 6) %}
+                            <span class="mini-star {% if i <= stat.avg|int %}star-on{% endif %}">★</span>
                             {% endfor %}
                         </div>
                     </div>
+                    <div class="chart-canvas-wrap" style="position:relative; height:200px; width:100%; max-width:350px;">
+                        <canvas id="chart_{{ stat.question_id }}"></canvas>
+                    </div>
+                </div>
 
-                    {% else %}
+                {% elif stat.question_type in ('multiple_choice','checkboxes','dropdown','yes_no') and stat.get('distribution') %}
+                <div class="q-stat-body-v2">
+                    <div class="chart-canvas-wrap" style="position:relative; height:220px; width:100%; max-width:320px;">
+                        <canvas id="chart_{{ stat.question_id }}"></canvas>
+                    </div>
+                    <div class="q-stat-bar-group" style="width:100%; max-width:480px;">
+                        {% for opt, data in stat.distribution.items() %}
+                        <div class="q-stat-bar-row">
+                            <span class="q-stat-bar-label q-stat-bar-label-choice" title="{{ opt }}">{{ opt[:28] }}{% if opt|length > 28 %}…{% endif %}</span>
+                            <span class="q-stat-bar-count" style="margin-left:auto;">{{ data.count }} <span class="q-stat-pct">({{ data.pct }}%)</span></span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="q-stat-body-v2" style="align-items:stretch;">
                     <div class="q-stat-text-count">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                         {{ stat.answered }} text response{{ 's' if stat.answered != 1 else '' }} collected
                     </div>
-                    <div class="latest-answers-box" style="margin-top:12px; background:rgba(255,255,255,0.3); border-radius:var(--radius-sm); border:1px solid var(--glass-border); max-height:160px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px;">
+                    <div class="text-response-feed">
                         {% set found_any = false %}
                         {% for item in responses %}
                             {% for ans in item.answers %}
                                 {% if ans.question_id == stat.question_id and ans.answer_value %}
-                                    <div class="latest-answer-item" style="font-size:13px; color:var(--text-secondary); padding:6px 8px; background:rgba(255,255,255,0.4); border-radius:6px; border-left:3.5px solid var(--accent); text-align:left;">
+                                    <div class="text-response-item">
                                         {{ ans.answer_value }}
                                     </div>
                                     {% set found_any = true %}
@@ -103,12 +130,15 @@
                         <p style="font-size:12px; color:var(--text-muted); font-style:italic; text-align:center; margin: 0;">No text responses filled</p>
                         {% endif %}
                     </div>
-                    {% endif %}
-
-                    <div class="q-stat-footer">{{ stat.answered }} of {{ stat.total }} answered</div>
                 </div>
-                {% endfor %}
+                {% endif %}
+
+                <div class="q-stat-footer-v2">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {{ stat.answered }} of {{ stat.total }} answered
+                </div>
             </div>
+            {% endfor %}
         </div>
         {% endif %}
     </div>
@@ -179,40 +209,56 @@ const FORM_ID = {{ form.id }};
 const ALL_RESPONSE_IDS = {{ all_response_ids | tojson }};
 const STATS = {{ question_stats | tojson }};
 
-// ============ TABS SWITCHING ============
+// ============ PILL TABS SWITCHING ============
+function positionSlider(tabId) {
+    const container = document.getElementById('tabsContainer');
+    const btn = document.getElementById(tabId);
+    const slider = document.getElementById('tabSlider');
+    if (!container || !btn || !slider) return;
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    slider.style.width = btnRect.width + 'px';
+    slider.style.left = (btnRect.left - containerRect.left) + 'px';
+}
+
 function switchTab(tab) {
-    document.querySelectorAll('.responses-tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.borderBottomColor = 'transparent';
-        btn.style.color = 'var(--text-muted)';
-    });
-    
+    document.querySelectorAll('.tab-pill').forEach(btn => btn.classList.remove('active'));
+
     if (tab === 'summary') {
-        const btn = document.getElementById('tabBtnSummary');
-        btn.classList.add('active');
-        btn.style.borderBottomColor = 'var(--accent)';
-        btn.style.color = 'var(--text-primary)';
+        document.getElementById('tabBtnSummary').classList.add('active');
+        positionSlider('tabBtnSummary');
         document.getElementById('tabContentSummary').style.display = 'block';
         document.getElementById('tabContentIndividual').style.display = 'none';
     } else {
-        const btn = document.getElementById('tabBtnIndividual');
-        btn.classList.add('active');
-        btn.style.borderBottomColor = 'var(--accent)';
-        btn.style.color = 'var(--text-primary)';
+        document.getElementById('tabBtnIndividual').classList.add('active');
+        positionSlider('tabBtnIndividual');
         document.getElementById('tabContentSummary').style.display = 'none';
         document.getElementById('tabContentIndividual').style.display = 'block';
         loadIndividualResponse();
     }
 }
 
+// Position slider on load
+window.addEventListener('DOMContentLoaded', () => {
+    positionSlider('tabBtnSummary');
+    window.addEventListener('resize', () => {
+        const active = document.querySelector('.tab-pill.active');
+        if (active) positionSlider(active.id);
+    });
+});
+
 // ============ SUMMARY CHART RENDERING ============
 window.addEventListener('DOMContentLoaded', () => {
-    // Styling the active tab initially
-    const activeBtn = document.querySelector('.responses-tab-btn.active');
-    if (activeBtn) {
-        activeBtn.style.borderBottomColor = 'var(--accent)';
-        activeBtn.style.color = 'var(--text-primary)';
-    }
+    // Animate progress rings
+    document.querySelectorAll('.progress-ring-fill').forEach(circle => {
+        const targetOffset = parseFloat(circle.getAttribute('data-target-offset'));
+        circle.style.strokeDashoffset = '125.66'; // Start fully empty
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                circle.style.strokeDashoffset = targetOffset;
+            }, 300);
+        });
+    });
 
     if (!STATS || !STATS.length) return;
 
@@ -241,29 +287,36 @@ window.addEventListener('DOMContentLoaded', () => {
                     labels: labels,
                     datasets: [{
                         data: dataValues,
-                        backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                        backgroundColor: 'rgba(245, 158, 11, 0.15)',
                         borderColor: '#f59e0b',
                         borderWidth: 1.5,
-                        borderRadius: 6
+                        borderRadius: 8,
+                        borderSkipped: false
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(9, 13, 22, 0.9)',
+                            padding: 10, cornerRadius: 8,
+                            bodyFont: { family: 'Space Grotesk', weight: '600' }
+                        }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            grid: { color: 'rgba(226, 232, 240, 0.3)', drawBorder: false },
                             ticks: { precision: 0, color: '#94a3b8' }
                         },
                         x: {
                             grid: { display: false },
-                            ticks: { color: '#94a3b8' }
+                            ticks: { color: '#94a3b8', font: { weight: '600' } }
                         }
-                    }
+                    },
+                    animation: { duration: 800, easing: 'easeOutQuart' }
                 }
             });
 
@@ -277,10 +330,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     labels: labels,
                     datasets: [{
                         data: dataValues,
-                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.15)',
                         borderColor: '#3b82f6',
                         borderWidth: 1.5,
-                        borderRadius: 6
+                        borderRadius: 8,
+                        borderSkipped: false
                     }]
                 },
                 options: {
@@ -288,19 +342,25 @@ window.addEventListener('DOMContentLoaded', () => {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(9, 13, 22, 0.9)',
+                            padding: 10, cornerRadius: 8,
+                            bodyFont: { family: 'Space Grotesk', weight: '600' }
+                        }
                     },
                     scales: {
                         x: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            grid: { color: 'rgba(226, 232, 240, 0.3)', drawBorder: false },
                             ticks: { precision: 0, color: '#94a3b8' }
                         },
                         y: {
                             grid: { display: false },
-                            ticks: { color: '#94a3b8' }
+                            ticks: { color: '#94a3b8', font: { weight: '600' } }
                         }
-                    }
+                    },
+                    animation: { duration: 800, easing: 'easeOutQuart' }
                 }
             });
 
@@ -330,18 +390,27 @@ window.addEventListener('DOMContentLoaded', () => {
                             '#ec4899',
                             '#8b5cf6'
                         ],
-                        borderWidth: 1.5
+                        borderWidth: 2,
+                        spacing: 2,
+                        borderRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '60%',
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } }
+                            labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11, weight: '600' }, padding: 12 }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(9, 13, 22, 0.9)',
+                            padding: 10, cornerRadius: 8,
+                            bodyFont: { family: 'Space Grotesk', weight: '600' }
                         }
-                    }
+                    },
+                    animation: { duration: 1000, easing: 'easeOutQuart' }
                 }
             });
         }
