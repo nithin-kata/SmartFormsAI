@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Organization Chart — SmartForms AI{% endblock %}
+{% block page_title %}Organization Chart{% endblock %}
+
+{% block extra_js %}
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+  google.charts.load('current', {packages:["orgchart"]});
+  google.charts.setOnLoadCallback(drawChart);
+
+  function drawChart() {
+    fetch('{{ url_for("hr_orgchart.api_data") }}')
+      .then(response => response.json())
+      .then(data => {
+        var dataTable = new google.visualization.DataTable();
+        dataTable.addColumn('string', 'Name');
+        dataTable.addColumn('string', 'Manager');
+        dataTable.addColumn('string', 'ToolTip');
+
+        var rows = data.map(emp => {
+            var fName = emp.name;
+            if (emp.position) {
+                fName = emp.name + '<div style="color:var(--text-tertiary); font-size: 0.85rem;">' + emp.position + '</div>';
+            }
+            return [{v: emp.id, f: fName}, emp.manager_id, emp.department];
+        });
+
+        dataTable.addRows(rows);
+
+        var chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
+        chart.draw(dataTable, {'allowHtml':true, 'nodeClass': 'org-node', 'selectedNodeClass': 'org-node-selected'});
+      });
+  }
+</script>
+<style>
+    .org-node {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Inter', sans-serif;
+    }
+    .org-node-selected {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    <div class="card" style="grid-column: span 2;">
+        <h2 class="card-title">Add Employee</h2>
+        <form action="{{ url_for('hr_orgchart.add_employee') }}" method="POST" class="form-group" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1; min-width: 200px;">
+                <label class="form-label">Name</label>
+                <input type="text" name="name" class="form-input" required placeholder="John Doe">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label class="form-label">Position</label>
+                <input type="text" name="position" class="form-input" required placeholder="Software Engineer">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label class="form-label">Department</label>
+                <input type="text" name="department" class="form-input" placeholder="Engineering">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label class="form-label">Manager</label>
+                <select name="manager_id" class="form-input">
+                    <option value="">None (Top Level)</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}">{{ emp.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="height: 42px;">Add</button>
+        </form>
+    </div>
+
+    <div class="card" style="grid-column: span 2; overflow-x: auto; min-height: 400px; display: flex; justify-content: center; padding: 2rem;">
+        <div id="chart_div"></div>
+    </div>
+</div>
+{% endblock %}

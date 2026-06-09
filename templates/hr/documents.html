@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Document Hub — SmartForms AI{% endblock %}
+{% block page_title %}Document Hub{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+    <div class="card">
+        <h2 class="card-title">Upload Document</h2>
+        <form action="{{ url_for('hr_documents.index') }}" method="POST" enctype="multipart/form-data" class="form-group">
+            <label class="form-label">Document Title</label>
+            <input type="text" name="title" class="form-input" required placeholder="e.g. Employee Handbook">
+            
+            <label class="form-label" style="margin-top: 1rem;">Select File</label>
+            <input type="file" name="document" class="form-input" required>
+            
+            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Upload</button>
+        </form>
+    </div>
+
+    <div>
+        <h2 style="margin-bottom: 1rem; font-size: 1.25rem; font-weight: 600;">Available Documents</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Uploaded By</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td style="font-weight: 500;">{{ doc.title }}</td>
+                        <td class="text-secondary">{{ doc.uploader_name }}</td>
+                        <td class="text-secondary">{{ doc.created_at.split(' ')[0] if doc.created_at else '' }}</td>
+                        <td>
+                            <a href="{{ url_for('hr_documents.download', filename=doc.file_name) }}" class="btn btn-secondary btn-sm">Download</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center" style="padding: 2rem;">No documents available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

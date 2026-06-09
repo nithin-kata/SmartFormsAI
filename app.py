@@ -44,6 +44,10 @@ def create_app():
     with app.app_context():
         init_db(app)
 
+    from routes.hr_announcements import hr_announcements_bp
+    from routes.hr_documents import hr_documents_bp
+    from routes.hr_orgchart import hr_orgchart_bp
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(forms_bp)
@@ -52,6 +56,10 @@ def create_app():
     app.register_blueprint(settings_bp)
     app.register_blueprint(public_bp)
     app.register_blueprint(api_bp)
+    
+    app.register_blueprint(hr_announcements_bp)
+    app.register_blueprint(hr_documents_bp)
+    app.register_blueprint(hr_orgchart_bp)
 
     return app
 
