@@ -975,14 +975,14 @@ textarea.form-input { resize: vertical; min-height: 90px; }
 
 .form-card {
   background: var(--glass-bg); border: 1.5px solid var(--glass-border);
-  border-radius: var(--radius-lg); overflow: hidden;
+  border-radius: var(--radius-lg); overflow: visible;
   transition: all var(--transition);
   display: flex; flex-direction: column;
   box-shadow: var(--shadow-3d);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }
-.form-card:hover { box-shadow: var(--shadow-3d-hover); transform: translateY(-3px); border-color: var(--accent-border); }
+.form-card:hover { box-shadow: var(--shadow-3d-hover); transform: translateY(-3px); border-color: var(--accent-border); z-index: 10; }
 
 .form-card-header { padding: 14px 16px 0; display: flex; align-items: center; justify-content: space-between; }
 
