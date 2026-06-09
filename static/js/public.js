@@ -24,12 +24,13 @@ function updateProgress() {
   const progressLabel = document.getElementById('progressLabel');
   if (!progressBar) return;
 
-  const questions = document.querySelectorAll('.public-question[data-required]');
+  // Only count visible required questions
+  const questions = [...document.querySelectorAll('.public-question[data-required]')].filter(q => q.style.display !== 'none');
   let answered = 0;
 
   questions.forEach(q => {
     const qId = q.dataset.questionId;
-    const inputs = q.querySelectorAll(`input[name="q_${qId}"], textarea[name="q_${qId}"], select[name="q_${qId}"]`);
+    const inputs = q.querySelectorAll(`input[name="q_${qId}"], textarea[name="q_${qId}"], select[name="q_${qId}"], input[type="hidden"]`);
     let hasAnswer = false;
 
     inputs.forEach(input => {
@@ -46,6 +47,104 @@ function updateProgress() {
   const pct = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
   progressBar.style.width = pct + '%';
   if (progressLabel) progressLabel.textContent = `${answered} of ${questions.length} answered`;
+}
+
+// ============ BRANCHING / SKIP ENGINE ============
+const ORIGINALLY_REQUIRED = {};
+
+function initRequiredMapping() {
+  document.querySelectorAll('.public-question').forEach(card => {
+    const qId = Number(card.dataset.questionId);
+    if (card.dataset.required === '1' || card.dataset.required === 'true') {
+      ORIGINALLY_REQUIRED[qId] = true;
+    }
+  });
+}
+
+function evaluateBranching() {
+  if (typeof QUESTIONS === 'undefined' || !Array.isArray(QUESTIONS)) return;
+
+  const visibility = {};
+  QUESTIONS.forEach(q => {
+    visibility[q.id] = true;
+  });
+
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    const q = QUESTIONS[i];
+    const qId = q.id;
+
+    if (!visibility[qId]) continue;
+
+    const value = getQuestionValue(qId);
+    if (!value) continue;
+
+    const rules = q.logic_rules || [];
+    const matchingRule = rules.find(r => r.value.toLowerCase() === value.toLowerCase());
+
+    if (matchingRule) {
+      const target = matchingRule.target_id;
+      if (target === 'submit') {
+        for (let j = i + 1; j < QUESTIONS.length; j++) {
+          visibility[QUESTIONS[j].id] = false;
+        }
+        break;
+      } else {
+        const targetId = Number(target);
+        let hiding = true;
+        for (let j = i + 1; j < QUESTIONS.length; j++) {
+          const nextQ = QUESTIONS[j];
+          if (nextQ.id === targetId) {
+            hiding = false;
+          }
+          if (hiding) {
+            visibility[nextQ.id] = false;
+          }
+        }
+      }
+    }
+  }
+
+  // Update DOM state
+  QUESTIONS.forEach(q => {
+    const card = document.querySelector(`.public-question[data-question-id="${q.id}"]`);
+    if (!card) return;
+
+    const shouldShow = visibility[q.id];
+    if (shouldShow) {
+      card.style.display = 'block';
+      if (ORIGINALLY_REQUIRED[q.id]) {
+        card.querySelectorAll('input, textarea, select').forEach(input => {
+          if (input.type !== 'hidden') input.required = true;
+        });
+      }
+    } else {
+      card.style.display = 'none';
+      card.querySelectorAll('input, textarea, select').forEach(input => {
+        input.required = false;
+        if (input.type === 'checkbox' || input.type === 'radio') {
+          input.checked = false;
+        } else if (input.type !== 'hidden') {
+          input.value = '';
+        }
+      });
+    }
+  });
+}
+
+function getQuestionValue(qId) {
+  const container = document.querySelector(`.public-question[data-question-id="${qId}"]`);
+  if (!container) return null;
+
+  const textInput = container.querySelector(`input[type="text"][name="q_${qId}"], select[name="q_${qId}"], input[type="email"][name="q_${qId}"], input[type="tel"][name="q_${qId}"], input[type="date"][name="q_${qId}"]`);
+  if (textInput) return textInput.value.trim();
+
+  const checkedRadio = container.querySelector(`input[type="radio"][name="q_${qId}"]:checked`);
+  if (checkedRadio) return checkedRadio.value;
+
+  const ratingInput = document.getElementById(`rating_q_${qId}`);
+  if (ratingInput) return ratingInput.value;
+
+  return null;
 }
 
 // ============ FORM SUBMISSION ============
@@ -78,11 +177,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Progress tracking
-  document.querySelectorAll('.public-question input, .public-question textarea, .public-question select').forEach(el => {
-    el.addEventListener('change', updateProgress);
-    el.addEventListener('input', updateProgress);
+  // Init Required mappings
+  initRequiredMapping();
+
+  // Progress & branching tracking
+  const inputs = document.querySelectorAll('.public-question input, .public-question textarea, .public-question select');
+  inputs.forEach(el => {
+    const handler = () => {
+      evaluateBranching();
+      updateProgress();
+    };
+    el.addEventListener('change', handler);
+    el.addEventListener('input', handler);
   });
+
+  evaluateBranching();
   updateProgress();
 });
 

@@ -111,13 +111,16 @@ def index(form_id):
     user = get_current_user()
     initials = get_avatar_initials(user['name']) if user else 'U'
 
+    all_response_ids = [row['id'] for row in db.execute('SELECT id FROM responses WHERE form_id = ? ORDER BY submitted_at DESC', (form_id,)).fetchall()]
+
     return render_template('responses/index.html',
         user=user, initials=initials,
         form=form, questions=questions,
         responses=responses_with_answers,
         total_responses=total_responses,
         page=page, total_pages=total_pages, search=search,
-        question_stats=question_stats
+        question_stats=question_stats,
+        all_response_ids=all_response_ids
     )
 
 @responses_bp.route('/forms/<int:form_id>/responses/<int:response_id>')
@@ -263,3 +266,32 @@ def ai_analyze(form_id):
         db.commit()
 
     return jsonify(result)
+
+@responses_bp.route('/api/forms/<int:form_id>/responses/<int:response_id>')
+@login_required
+def api_get_response(form_id, response_id):
+    db = get_db(current_app)
+    form = db.execute('SELECT * FROM forms WHERE id = ? AND user_id = ?',
+                      (form_id, session['user_id'])).fetchone()
+    if not form:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    
+    response = db.execute('SELECT * FROM responses WHERE id = ? AND form_id = ?',
+                          (response_id, form_id)).fetchone()
+    if not response:
+        return jsonify({'success': False, 'error': 'Response not found'}), 404
+    
+    answers = db.execute('''
+        SELECT a.*, q.question_text, q.question_type, q.order_index
+        FROM answers a
+        JOIN questions q ON a.question_id = q.id
+        WHERE a.response_id = ?
+        ORDER BY q.order_index
+    ''', (response_id,)).fetchall()
+    
+    answers_data = [dict(a) for a in answers]
+    return jsonify({
+        'success': True,
+        'response': dict(response),
+        'answers': answers_data
+    })

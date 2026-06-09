@@ -19,6 +19,15 @@ function normalizeQuestion(q) {
     }
   }
   if (!Array.isArray(normalized.options)) normalized.options = [];
+
+  if (typeof normalized.logic_rules === 'string') {
+    try {
+      normalized.logic_rules = JSON.parse(normalized.logic_rules || '[]');
+    } catch {
+      normalized.logic_rules = [];
+    }
+  }
+  if (!Array.isArray(normalized.logic_rules)) normalized.logic_rules = [];
   return normalized;
 }
 
@@ -218,25 +227,158 @@ function editQuestion(id) {
   document.getElementById('editRequired').checked = !!q.is_required;
   document.getElementById('editPlaceholder').value = q.placeholder || '';
   updateEditOptions(q.options || []);
+  updateEditLogic(q.logic_rules || []);
   document.getElementById('editModal').style.display = 'flex';
 }
 
 function updateEditOptions(existingOptions) {
-  const type = document.getElementById('editQuestionType').value;
+  const typeEl = document.getElementById('editQuestionType');
   const section = document.getElementById('editOptionsSection');
+  if (!typeEl || !section) return;
+
+  const type = typeEl.value;
   const hasOptions = ['multiple_choice', 'checkboxes', 'dropdown'].includes(type);
   section.style.display = hasOptions ? 'block' : 'none';
 
   if (hasOptions) {
-    const opts = existingOptions || (document.getElementById('editOptionsList').children.length
+    const list = document.getElementById('editOptionsList');
+    const opts = existingOptions || (list && list.children.length
       ? [...document.querySelectorAll('.edit-option-input')].map(i => i.value)
       : ['Option 1', 'Option 2', 'Option 3']);
     renderOptionFields(Array.isArray(opts) ? opts : ['Option 1', 'Option 2', 'Option 3']);
   }
+
+  // Also update logic dropdown choices based on current options
+  const q = editingQuestionId ? window.QUESTIONS_BY_ID[Number(editingQuestionId)] : null;
+  updateEditLogic(q ? q.logic_rules : []);
+}
+
+function updateEditLogic(existingRules) {
+  const typeEl = document.getElementById('editQuestionType');
+  const section = document.getElementById('editLogicSection');
+  if (!typeEl || !section) return;
+
+  const type = typeEl.value;
+  const supportsLogic = ['multiple_choice', 'dropdown', 'yes_no'].includes(type);
+  section.style.display = supportsLogic ? 'block' : 'none';
+
+  if (supportsLogic) {
+    renderLogicRuleFields(existingRules || []);
+  }
+}
+
+function renderLogicRuleFields(rules) {
+  const list = document.getElementById('editLogicRulesList');
+  const typeEl = document.getElementById('editQuestionType');
+  if (!list || !typeEl) return;
+  const type = typeEl.value;
+  
+  let options = [];
+  if (type === 'yes_no') {
+    options = ['Yes', 'No'];
+  } else {
+    options = [...document.querySelectorAll('.edit-option-input')].map(i => i.value.trim()).filter(Boolean);
+    if (!options.length) {
+      options = ['Option 1', 'Option 2', 'Option 3'];
+    }
+  }
+
+  const allCards = [...document.querySelectorAll('.question-card')];
+  const currentIndex = allCards.findIndex(c => Number(c.dataset.questionId) === Number(editingQuestionId));
+  const subsequentQuestions = allCards.slice(currentIndex + 1).map(c => {
+    const qId = Number(c.dataset.questionId);
+    const qObj = window.QUESTIONS_BY_ID[qId];
+    return {
+      id: qId,
+      text: qObj ? qObj.question_text : `Question (ID: ${qId})`
+    };
+  });
+
+  list.innerHTML = '';
+  if (!rules.length) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);font-style:italic;">No rules defined.</p>';
+    return;
+  }
+
+  rules.forEach((rule, idx) => {
+    const row = document.createElement('div');
+    row.className = 'edit-logic-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+    
+    let optionsHtml = options.map(o => `<option value="${escAttr(o)}" ${rule.value === o ? 'selected' : ''}>${escHtml(o)}</option>`).join('');
+    let targetsHtml = subsequentQuestions.map(q => `<option value="${q.id}" ${Number(rule.target_id) === q.id ? 'selected' : ''}>Go to: ${escHtml(q.text.substring(0, 30))}</option>`).join('');
+    targetsHtml += `<option value="submit" ${rule.target_id === 'submit' ? 'selected' : ''}>Submit Form</option>`;
+
+    row.innerHTML = `
+      <span style="font-size:12.5px;color:var(--text-secondary);flex-shrink:0;">If answer is</span>
+      <select class="form-select edit-logic-val" style="padding:6px;font-size:13px;height:auto;margin:0;">
+        ${optionsHtml}
+      </select>
+      <span style="font-size:12.5px;color:var(--text-secondary);flex-shrink:0;">then</span>
+      <select class="form-select edit-logic-target" style="padding:6px;font-size:13px;height:auto;margin:0;">
+        ${targetsHtml}
+      </select>
+      <button type="button" class="btn btn-ghost btn-xs" onclick="this.parentElement.remove()" style="flex-shrink:0;font-weight:700;">×</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function addLogicRuleField() {
+  const list = document.getElementById('editLogicRulesList');
+  const typeEl = document.getElementById('editQuestionType');
+  if (!list || !typeEl) return;
+  if (list.querySelector('p')) {
+    list.innerHTML = '';
+  }
+  
+  const type = typeEl.value;
+  let options = [];
+  if (type === 'yes_no') {
+    options = ['Yes', 'No'];
+  } else {
+    options = [...document.querySelectorAll('.edit-option-input')].map(i => i.value.trim()).filter(Boolean);
+    if (!options.length) {
+      options = ['Option 1', 'Option 2', 'Option 3'];
+    }
+  }
+
+  const allCards = [...document.querySelectorAll('.question-card')];
+  const currentIndex = allCards.findIndex(c => Number(c.dataset.questionId) === Number(editingQuestionId));
+  const subsequentQuestions = allCards.slice(currentIndex + 1).map(c => {
+    const qId = Number(c.dataset.questionId);
+    const qObj = window.QUESTIONS_BY_ID[qId];
+    return {
+      id: qId,
+      text: qObj ? qObj.question_text : `Question (ID: ${qId})`
+    };
+  });
+
+  const row = document.createElement('div');
+  row.className = 'edit-logic-row';
+  row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-bottom:6px;';
+  
+  let optionsHtml = options.map(o => `<option value="${escAttr(o)}">${escHtml(o)}</option>`).join('');
+  let targetsHtml = subsequentQuestions.map(q => `<option value="${q.id}">Go to: ${escHtml(q.text.substring(0, 30))}</option>`).join('');
+  targetsHtml += `<option value="submit">Submit Form</option>`;
+
+  row.innerHTML = `
+    <span style="font-size:12.5px;color:var(--text-secondary);flex-shrink:0;">If answer is</span>
+    <select class="form-select edit-logic-val" style="padding:6px;font-size:13px;height:auto;margin:0;">
+      ${optionsHtml}
+    </select>
+    <span style="font-size:12.5px;color:var(--text-secondary);flex-shrink:0;">then</span>
+    <select class="form-select edit-logic-target" style="padding:6px;font-size:13px;height:auto;margin:0;">
+      ${targetsHtml}
+    </select>
+    <button type="button" class="btn btn-ghost btn-xs" onclick="this.parentElement.remove()" style="flex-shrink:0;font-weight:700;">×</button>
+  `;
+  list.appendChild(row);
 }
 
 function renderOptionFields(options) {
   const list = document.getElementById('editOptionsList');
+  if (!list) return;
   list.innerHTML = options.map((opt, i) => `
     <div class="edit-option-row" style="display:flex;gap:6px;margin-bottom:6px;">
       <input type="text" class="form-input edit-option-input" value="${escAttr(opt)}" placeholder="Option ${i+1}">
@@ -247,6 +389,7 @@ function renderOptionFields(options) {
 
 function addOptionField() {
   const list = document.getElementById('editOptionsList');
+  if (!list) return;
   const row = document.createElement('div');
   row.className = 'edit-option-row';
   row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
@@ -259,20 +402,42 @@ function addOptionField() {
 }
 
 function saveQuestion() {
-  const text = document.getElementById('editQuestionText').value.trim();
+  const textEl = document.getElementById('editQuestionText');
+  if (!textEl) return;
+  const text = textEl.value.trim();
   if (!text) { showToast('Question text is required', 'error'); return; }
 
-  const type = document.getElementById('editQuestionType').value;
-  const required = document.getElementById('editRequired').checked;
-  const placeholder = document.getElementById('editPlaceholder').value.trim();
+  const typeEl = document.getElementById('editQuestionType');
+  const requiredEl = document.getElementById('editRequired');
+  const placeholderEl = document.getElementById('editPlaceholder');
+  if (!typeEl || !requiredEl || !placeholderEl) return;
+
+  const type = typeEl.value;
+  const required = requiredEl.checked;
+  const placeholder = placeholderEl.value.trim();
   const options = ['multiple_choice','checkboxes','dropdown'].includes(type)
     ? [...document.querySelectorAll('.edit-option-input')].map(i => i.value.trim()).filter(Boolean)
     : [];
 
+  const logic_rules = [];
+  if (['multiple_choice', 'dropdown', 'yes_no'].includes(type)) {
+    document.querySelectorAll('.edit-logic-row').forEach(row => {
+      const valEl = row.querySelector('.edit-logic-val');
+      const targetEl = row.querySelector('.edit-logic-target');
+      if (valEl && targetEl) {
+        logic_rules.push({
+          value: valEl.value,
+          action: 'jump',
+          target_id: targetEl.value === 'submit' ? 'submit' : Number(targetEl.value)
+        });
+      }
+    });
+  }
+
   fetch(`/api/questions/${editingQuestionId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question_text: text, question_type: type, is_required: required, options, placeholder })
+    body: JSON.stringify({ question_text: text, question_type: type, is_required: required, options, placeholder, logic_rules })
   })
   .then(r => r.json())
   .then(data => {

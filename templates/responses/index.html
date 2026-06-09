@@ -31,125 +31,112 @@
         </div>
     </div>
 
-    {% if question_stats %}
-    <!-- Per-Question Statistics Panel -->
-    <div class="question-stats-panel">
-        <div class="question-stats-header">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
-            <span>Form Statistics — calculated individually for this form</span>
-        </div>
-        <div class="question-stats-grid">
-            {% for stat in question_stats %}
-            <div class="q-stat-card">
-                <div class="q-stat-header">
-                    <span class="q-stat-type-badge q-type-{{ stat.question_type }}">{{ stat.question_type.replace('_',' ') }}</span>
-                    <span class="q-stat-rate">{{ stat.response_rate }}% responded</span>
-                </div>
-                <p class="q-stat-question">{{ stat.question_text }}</p>
-
-                {% if stat.question_type == 'rating' and stat.get('avg') %}
-                <!-- Rating: show average + star distribution -->
-                <div class="q-stat-rating-avg">
-                    <span class="q-stat-avg-num">{{ stat.avg }}</span>
-                    <span class="q-stat-avg-label">/ 5 avg</span>
-                    <div class="q-stat-stars">
-                        {% for i in range(1, 6) %}
-                        <span class="mini-star {% if i <= stat.avg|int %}star-on{% endif %}">★</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="q-stat-bar-group">
-                    {% for star_val in ['5','4','3','2','1'] %}
-                    {% set cnt = stat.distribution.get(star_val, 0) %}
-                    {% set pct = (cnt / stat.answered * 100)|int if stat.answered else 0 %}
-                    <div class="q-stat-bar-row">
-                        <span class="q-stat-bar-label">{{ star_val }}★</span>
-                        <div class="q-stat-bar-track">
-                            <div class="q-stat-bar-fill q-bar-rating" style="width:{{ pct }}%"></div>
-                        </div>
-                        <span class="q-stat-bar-count">{{ cnt }}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% elif stat.question_type in ('multiple_choice','checkboxes','dropdown','yes_no') and stat.get('distribution') %}
-                <!-- Choice: show option distribution -->
-                <div class="q-stat-bar-group">
-                    {% for opt, data in stat.distribution.items() %}
-                    <div class="q-stat-bar-row">
-                        <span class="q-stat-bar-label q-stat-bar-label-choice" title="{{ opt }}">{{ opt[:28] }}{% if opt|length > 28 %}…{% endif %}</span>
-                        <div class="q-stat-bar-track">
-                            <div class="q-stat-bar-fill q-bar-choice" style="width:{{ data.pct }}%"></div>
-                        </div>
-                        <span class="q-stat-bar-count">{{ data.count }} <span class="q-stat-pct">({{ data.pct }}%)</span></span>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                {% else %}
-                <!-- Text/other: just show response count -->
-                <div class="q-stat-text-count">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-                    {{ stat.answered }} text response{{ 's' if stat.answered != 1 else '' }} collected
-                </div>
-                {% endif %}
-
-                <div class="q-stat-footer">{{ stat.answered }} of {{ stat.total }} answered</div>
-            </div>
-            {% endfor %}
-        </div>
+    {% if total_responses > 0 %}
+    <!-- Google Forms style navigation tabs -->
+    <div class="responses-tabs-wrap" style="display:flex; border-bottom: 2px solid rgba(255, 255, 255, 0.2); margin-bottom: 28px; gap: 8px;">
+        <button class="responses-tab-btn active" id="tabBtnSummary" onclick="switchTab('summary')" style="background:none; border:none; padding:12px 24px; font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-secondary); cursor:pointer; position:relative; transition:all var(--transition); border-bottom:3px solid transparent;">Summary</button>
+        <button class="responses-tab-btn" id="tabBtnIndividual" onclick="switchTab('individual')" style="background:none; border:none; padding:12px 24px; font-family:var(--font-display); font-size:15px; font-weight:700; color:var(--text-secondary); cursor:pointer; position:relative; transition:all var(--transition); border-bottom:3px solid transparent;">Individual</button>
     </div>
-    {% endif %}
 
-    {% if responses %}
-    <div class="responses-table-wrap">
-        <table class="responses-table">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Submitted</th>
-                    {% for q in questions %}
-                    <th class="table-question-header">{{ q.question_text[:40] }}{% if q.question_text|length > 40 %}…{% endif %}</th>
-                    {% endfor %}
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in responses %}
-                <tr class="response-row" onclick="window.location='/forms/{{ form.id }}/responses/{{ item.response.id }}'">
-                    <td class="response-id">#{{ item.response.id }}</td>
-                    <td class="response-date">{{ item.response.submitted_at | string | truncate(16, True, "") }}</td>
-                    {% for q in questions %}
-                    <td class="response-answer">
-                        {% set ans_val = '' %}
-                        {% for ans in item.answers %}
-                            {% if ans.question_id == q.id %}
-                                {% set ans_val = ans.answer_value %}
-                            {% endif %}
+    <!-- ============ SUMMARY VIEW ============ -->
+    <div id="tabContentSummary">
+        {% if question_stats %}
+        <div class="question-stats-panel" style="background:transparent; border:none; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; margin-bottom:0;">
+            <div class="question-stats-grid">
+                {% for stat in question_stats %}
+                <div class="q-stat-card">
+                    <div class="q-stat-header">
+                        <span class="q-stat-type-badge q-type-{{ stat.question_type }}">{{ stat.question_type.replace('_',' ') }}</span>
+                        <span class="q-stat-rate">{{ stat.response_rate }}% responded</span>
+                    </div>
+                    <p class="q-stat-question">{{ stat.question_text }}</p>
+
+                    {% if stat.question_type == 'rating' and stat.get('avg') %}
+                    <div style="display:flex; flex-direction:column; gap:20px; align-items:center;">
+                        <div class="q-stat-rating-avg" style="margin-bottom:0; width:100%; justify-content:center;">
+                            <span class="q-stat-avg-num">{{ stat.avg }}</span>
+                            <span class="q-stat-avg-label">/ 5 avg</span>
+                            <div class="q-stat-stars">
+                                {% for i in range(1, 6) %}
+                                <span class="mini-star {% if i <= stat.avg|int %}star-on{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="chart-canvas-wrap" style="position:relative; height:200px; width:100%; max-width:350px;">
+                            <canvas id="chart_{{ stat.question_id }}"></canvas>
+                        </div>
+                    </div>
+
+                    {% elif stat.question_type in ('multiple_choice','checkboxes','dropdown','yes_no') and stat.get('distribution') %}
+                    <div style="display:flex; flex-direction:column; gap:20px; align-items:center;">
+                        <div class="chart-canvas-wrap" style="position:relative; height:220px; width:100%; max-width:320px;">
+                            <canvas id="chart_{{ stat.question_id }}"></canvas>
+                        </div>
+                        <div class="q-stat-bar-group" style="width:100%; max-width:480px;">
+                            {% for opt, data in stat.distribution.items() %}
+                            <div class="q-stat-bar-row">
+                                <span class="q-stat-bar-label q-stat-bar-label-choice" title="{{ opt }}">{{ opt[:28] }}{% if opt|length > 28 %}…{% endif %}</span>
+                                <span class="q-stat-bar-count" style="margin-left:auto;">{{ data.count }} <span class="q-stat-pct">({{ data.pct }}%)</span></span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <div class="q-stat-text-count">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                        {{ stat.answered }} text response{{ 's' if stat.answered != 1 else '' }} collected
+                    </div>
+                    <div class="latest-answers-box" style="margin-top:12px; background:rgba(255,255,255,0.3); border-radius:var(--radius-sm); border:1px solid var(--glass-border); max-height:160px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px;">
+                        {% set found_any = false %}
+                        {% for item in responses %}
+                            {% for ans in item.answers %}
+                                {% if ans.question_id == stat.question_id and ans.answer_value %}
+                                    <div class="latest-answer-item" style="font-size:13px; color:var(--text-secondary); padding:6px 8px; background:rgba(255,255,255,0.4); border-radius:6px; border-left:3.5px solid var(--accent); text-align:left;">
+                                        {{ ans.answer_value }}
+                                    </div>
+                                    {% set found_any = true %}
+                                {% endif %}
+                            {% endfor %}
                         {% endfor %}
-                        {% if ans_val %}
-                        <span class="answer-preview">{{ ans_val[:50] }}{% if ans_val|length > 50 %}…{% endif %}</span>
-                        {% else %}
-                        <span class="answer-empty">—</span>
+                        {% if not found_any %}
+                        <p style="font-size:12px; color:var(--text-muted); font-style:italic; text-align:center; margin: 0;">No text responses filled</p>
                         {% endif %}
-                    </td>
-                    {% endfor %}
-                    <td onclick="event.stopPropagation()">
-                        <button class="btn btn-ghost btn-xs btn-danger" onclick="deleteResponse({{ item.response.id }})">Delete</button>
-                    </td>
-                </tr>
+                    </div>
+                    {% endif %}
+
+                    <div class="q-stat-footer">{{ stat.answered }} of {{ stat.total }} answered</div>
+                </div>
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    {% if total_pages > 1 %}
-    <div class="pagination">
-        {% if page > 1 %}<a href="?page={{ page - 1 }}" class="pagination-btn">← Previous</a>{% endif %}
-        <span class="pagination-info">Page {{ page }} of {{ total_pages }}</span>
-        {% if page < total_pages %}<a href="?page={{ page + 1 }}" class="pagination-btn">Next →</a>{% endif %}
+    <!-- ============ INDIVIDUAL VIEW ============ -->
+    <div id="tabContentIndividual" style="display:none;">
+        <div class="individual-nav-bar" style="display:flex; justify-content:space-between; align-items:center; background:var(--glass-bg); padding:16px 20px; border-radius:var(--radius-lg); border:1.5px solid var(--glass-border); box-shadow:var(--shadow-3d); margin-bottom:24px; flex-wrap:wrap; gap:12px; backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn btn-ghost btn-sm" onclick="navIndividual(-1)" id="prevResponseBtn" style="padding:6px 12px; font-size:13.5px;">← Prev</button>
+                <span id="individualResponseLabel" style="font-weight:800; font-family:var(--font-display); font-size:14.5px; color:var(--text-primary); min-width:110px; text-align:center;">Response 1 of {{ all_response_ids|length }}</span>
+                <button class="btn btn-ghost btn-sm" onclick="navIndividual(1)" id="nextResponseBtn" style="padding:6px 12px; font-size:13.5px;">Next →</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:13px; color:var(--text-secondary);">Select ID:</span>
+                <select id="responseSelector" class="form-select" style="margin:0; padding:4px 24px 4px 12px; width:auto; font-size:13px; height:32px;" onchange="selectResponse(this.value)">
+                    {% for r_id in all_response_ids %}
+                    <option value="{{ loop.index0 }}">#{{ r_id }} (Response {{ loop.index }})</option>
+                    {% endfor %}
+                </select>
+                <button class="btn btn-danger-outline btn-sm" onclick="deleteCurrentResponse()" style="padding:6px 12px; font-size:13.5px; height:32px;">Delete</button>
+            </div>
+        </div>
+
+        <div id="individualResponseContent" style="min-height:200px;">
+            <!-- Dynamic Response Details Card -->
+        </div>
     </div>
-    {% endif %}
+
     {% else %}
     <div class="empty-state">
         <div class="empty-icon">
@@ -158,7 +145,7 @@
         <h3>No responses yet</h3>
         <p>{% if form.is_published %}Share your form link to start collecting responses.{% else %}Publish your form first to start collecting responses.{% endif %}</p>
         {% if form.is_published %}
-        <button class="btn btn-primary" onclick='copyLink({{ (request.host_url ~ 'f/' ~ form.slug) | tojson }})'>Copy form link</button>
+        <button class="btn btn-primary" onclick='copyToClipboard({{ (request.host_url ~ 'f/' ~ form.slug) | tojson }})'>Copy form link</button>
         {% else %}
         <a href="/forms/{{ form.id }}/builder" class="btn btn-primary">Go to builder</a>
         {% endif %}
@@ -176,7 +163,7 @@
         <div class="ai-panel-body">
             <div class="ai-loading" id="aiPanelLoading" style="display:none">
                 <div class="ai-spinner"></div>
-                <p>Analyzing {{ total_responses }} responses...</p>
+                <p>Analyzing responses...</p>
             </div>
             <div id="aiPanelContent" class="ai-report-content"></div>
         </div>
@@ -186,9 +173,302 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const FORM_ID = {{ form.id }};
+const ALL_RESPONSE_IDS = {{ all_response_ids | tojson }};
+const STATS = {{ question_stats | tojson }};
 
+// ============ TABS SWITCHING ============
+function switchTab(tab) {
+    document.querySelectorAll('.responses-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderBottomColor = 'transparent';
+        btn.style.color = 'var(--text-muted)';
+    });
+    
+    if (tab === 'summary') {
+        const btn = document.getElementById('tabBtnSummary');
+        btn.classList.add('active');
+        btn.style.borderBottomColor = 'var(--accent)';
+        btn.style.color = 'var(--text-primary)';
+        document.getElementById('tabContentSummary').style.display = 'block';
+        document.getElementById('tabContentIndividual').style.display = 'none';
+    } else {
+        const btn = document.getElementById('tabBtnIndividual');
+        btn.classList.add('active');
+        btn.style.borderBottomColor = 'var(--accent)';
+        btn.style.color = 'var(--text-primary)';
+        document.getElementById('tabContentSummary').style.display = 'none';
+        document.getElementById('tabContentIndividual').style.display = 'block';
+        loadIndividualResponse();
+    }
+}
+
+// ============ SUMMARY CHART RENDERING ============
+window.addEventListener('DOMContentLoaded', () => {
+    // Styling the active tab initially
+    const activeBtn = document.querySelector('.responses-tab-btn.active');
+    if (activeBtn) {
+        activeBtn.style.borderBottomColor = 'var(--accent)';
+        activeBtn.style.color = 'var(--text-primary)';
+    }
+
+    if (!STATS || !STATS.length) return;
+
+    STATS.forEach(stat => {
+        const qType = stat.question_type;
+        const qId = stat.question_id;
+        const canvasId = 'chart_' + qId;
+        const canvasEl = document.getElementById(canvasId);
+        if (!canvasEl) return;
+
+        const ctx = canvasEl.getContext('2d');
+
+        if (qType === 'rating' && stat.distribution) {
+            const labels = ['1★', '2★', '3★', '4★', '5★'];
+            const dataValues = [
+                stat.distribution['1'] || 0,
+                stat.distribution['2'] || 0,
+                stat.distribution['3'] || 0,
+                stat.distribution['4'] || 0,
+                stat.distribution['5'] || 0
+            ];
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: 'rgba(245, 158, 11, 0.7)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            ticks: { precision: 0, color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+        } else if (qType === 'checkboxes' && stat.distribution) {
+            const labels = Object.keys(stat.distribution);
+            const dataValues = Object.values(stat.distribution).map(d => d.count);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            ticks: { precision: 0, color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+
+        } else if (['multiple_choice', 'dropdown', 'yes_no'].includes(qType) && stat.distribution) {
+            const labels = Object.keys(stat.distribution);
+            const dataValues = Object.values(stat.distribution).map(d => d.count);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: [
+                            'rgba(99, 102, 241, 0.7)',
+                            'rgba(59, 130, 246, 0.7)',
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(236, 72, 153, 0.7)',
+                            'rgba(139, 92, 246, 0.7)'
+                        ],
+                        borderColor: [
+                            '#6366f1',
+                            '#3b82f6',
+                            '#10b981',
+                            '#f59e0b',
+                            '#ec4899',
+                            '#8b5cf6'
+                        ],
+                        borderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', boxWidth: 12, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+    });
+});
+
+// ============ INDIVIDUAL VIEW LOGIC ============
+let currentResponseIndex = 0;
+
+function navIndividual(dir) {
+    const nextIndex = currentResponseIndex + dir;
+    if (nextIndex >= 0 && nextIndex < ALL_RESPONSE_IDS.length) {
+        currentResponseIndex = nextIndex;
+        document.getElementById('responseSelector').value = currentResponseIndex;
+        loadIndividualResponse();
+    }
+}
+
+function selectResponse(idx) {
+    currentResponseIndex = parseInt(idx);
+    loadIndividualResponse();
+}
+
+function loadIndividualResponse() {
+    if (!ALL_RESPONSE_IDS || !ALL_RESPONSE_IDS.length) return;
+
+    const container = document.getElementById('individualResponseContent');
+    container.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; padding:60px;">
+            <div class="ai-spinner" style="width:24px;height:24px;border-width:2.5px;"></div>
+            <span style="margin-left:10px;font-size:14px;color:var(--text-secondary);">Loading response...</span>
+        </div>
+    `;
+
+    document.getElementById('prevResponseBtn').disabled = (currentResponseIndex === 0);
+    document.getElementById('nextResponseBtn').disabled = (currentResponseIndex === ALL_RESPONSE_IDS.length - 1);
+    document.getElementById('individualResponseLabel').textContent = `Response ${currentResponseIndex + 1} of ${ALL_RESPONSE_IDS.length}`;
+
+    const respId = ALL_RESPONSE_IDS[currentResponseIndex];
+
+    fetch(`/api/forms/${FORM_ID}/responses/${respId}`)
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            container.innerHTML = `<div class="error-msg">${data.error}</div>`;
+            return;
+        }
+
+        const answers = data.answers;
+        let answersHtml = '';
+
+        if (!answers || !answers.length) {
+            answersHtml = '<p style="padding:20px;text-align:center;color:var(--text-muted);font-style:italic;">No answers recorded for this response.</p>';
+        } else {
+            answers.forEach((ans, idx) => {
+                let valHtml = '';
+                if (ans.answer_value) {
+                    if (ans.question_type === 'rating') {
+                        let stars = '';
+                        for (let i = 1; i <= 5; i++) {
+                            stars += `<span class="star ${i <= parseInt(ans.answer_value) ? 'star-filled' : ''}" style="color:${i <= parseInt(ans.answer_value) ? '#f59e0b' : '#e2e8f0'};font-size:18px;">★</span>`;
+                        }
+                        valHtml = `
+                            <div class="rating-display" style="display:flex;align-items:center;gap:4px;">
+                                ${stars}
+                                <span style="font-size:13px;color:var(--text-secondary);margin-left:6px;font-weight:600;">${ans.answer_value}/5</span>
+                            </div>
+                        `;
+                    } else if (ans.question_type === 'file_upload') {
+                        valHtml = `
+                            <a href="/static/uploads/${ans.answer_value}" target="_blank" class="file-link" style="display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;font-size:13.5px;text-decoration:none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                                ${ans.answer_value}
+                            </a>
+                        `;
+                    } else {
+                        valHtml = `<span class="answer-text" style="font-size:14.5px;color:var(--text-primary);font-weight:500;word-break:break-word;display:block;text-align:left;">${ans.answer_value}</span>`;
+                    }
+                } else {
+                    valHtml = `<span class="answer-empty" style="color:var(--text-muted);font-style:italic;font-size:13.5px;">Not answered</span>`;
+                }
+
+                answersHtml += `
+                    <div class="answer-item" style="padding:20px 24px;border-bottom:1.5px solid var(--glass-border);display:flex;flex-direction:column;gap:10px;">
+                        <div class="answer-question" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                            <span class="answer-q-num" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(99,102,241,0.1);color:var(--accent);font-size:12.5px;font-weight:700;">${idx + 1}</span>
+                            <span class="answer-q-text" style="font-weight:700;font-family:var(--font-display);font-size:14.5px;color:var(--text-primary);">${ans.question_text}</span>
+                            <span class="answer-q-type" style="font-size:11px;background:rgba(255,255,255,0.4);padding:2px 8px;border-radius:20px;color:var(--text-secondary);font-weight:600;border:1px solid var(--glass-border);">${ans.question_type.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                        <div class="answer-value" style="padding:4px 0 0 34px;">
+                            ${valHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        container.innerHTML = `
+            <div class="response-answers-card" style="background:var(--glass-bg);border:1.5px solid var(--glass-border);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-3d);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);">
+                <div style="background:rgba(255,255,255,0.25);padding:14px 24px;border-bottom:1.5px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">Submitted: <strong>${data.response.submitted_at}</strong></span>
+                    <span style="font-size:13px;color:var(--text-secondary);font-weight:500;">IP Address: <strong>${data.response.respondent_ip || 'unknown'}</strong></span>
+                </div>
+                <div>
+                    ${answersHtml}
+                </div>
+            </div>
+        `;
+    });
+}
+
+function deleteCurrentResponse() {
+    if (!ALL_RESPONSE_IDS || !ALL_RESPONSE_IDS.length) return;
+    const respId = ALL_RESPONSE_IDS[currentResponseIndex];
+    if (!confirm(`Delete Response #${respId} permanently?`)) return;
+
+    fetch(`/forms/${FORM_ID}/responses/${respId}/delete`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Response deleted');
+            setTimeout(() => location.reload(), 600);
+        }
+    });
+}
+
+// ============ OTHER EVENT ENDPOINTS ============
 function analyzeResponses() {
     document.getElementById('aiPanel').style.display = 'flex';
     document.getElementById('aiPanelLoading').style.display = 'flex';
@@ -210,20 +490,9 @@ function closeAIPanel() {
     document.getElementById('aiPanel').style.display = 'none';
 }
 
-function deleteResponse(id) {
-    if (!confirm('Delete this response permanently?')) return;
-    fetch(`/forms/${FORM_ID}/responses/${id}/delete`, { method: 'POST' })
-    .then(r => r.json())
-    .then(data => { if (data.success) location.reload(); });
-}
-
-function copyLink(url) {
-    navigator.clipboard.writeText(url).then(() => showToast('Link copied!'));
-}
-
 function copyFormLink() {
     const url = '{{ request.host_url }}f/{{ form.slug }}';
-    navigator.clipboard.writeText(url).then(() => showToast('Form link copied to clipboard!'));
+    copyToClipboard(url);
 }
 </script>
 {% endblock %}

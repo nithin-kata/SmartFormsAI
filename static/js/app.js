@@ -60,6 +60,42 @@ function showToast(message, type) {
   }, 3200);
 }
 
+// ============ COPY TO CLIPBOARD ============
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      function() { showToast('Link copied to clipboard!'); },
+      function() { fallbackCopyToClipboard(text); }
+    );
+  } else {
+    fallbackCopyToClipboard(text);
+  }
+}
+
+function fallbackCopyToClipboard(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      showToast('Link copied to clipboard!');
+    } else {
+      showToast('Failed to copy link', 'error');
+    }
+  } catch (err) {
+    showToast('Failed to copy link', 'error');
+  }
+  document.body.removeChild(textArea);
+}
+
+
 // ============ KEYBOARD SHORTCUTS ============
 document.addEventListener('keydown', function(e) {
   // Escape: close any open modal or AI panel

@@ -63,6 +63,7 @@ def init_db(app):
                 options TEXT DEFAULT '[]',
                 placeholder TEXT DEFAULT '',
                 order_index INTEGER DEFAULT 0,
+                logic_rules TEXT DEFAULT '[]',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (form_id) REFERENCES forms(id) ON DELETE CASCADE
             );
@@ -97,6 +98,14 @@ def init_db(app):
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         ''')
+        
+        # Self-healing migration to add logic_rules column to questions table if it doesn't exist
+        try:
+            db.execute("ALTER TABLE questions ADD COLUMN logic_rules TEXT DEFAULT '[]'")
+        except sqlite3.OperationalError:
+            # Column already exists
+            pass
+            
         db.commit()
         db.close()
 

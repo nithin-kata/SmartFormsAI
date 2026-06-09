@@ -22,9 +22,13 @@ def submit(slug):
     for q in questions:
         q_dict = dict(q)
         try:
-            q_dict['options'] = json.loads(q['options'] or '[]')
+            q_dict['options'] = json.loads(q_dict.get('options') or '[]')
         except Exception:
             q_dict['options'] = []
+        try:
+            q_dict['logic_rules'] = json.loads(q_dict.get('logic_rules') or '[]')
+        except Exception:
+            q_dict['logic_rules'] = []
         questions_data.append(q_dict)
     
     if request.method == 'POST':

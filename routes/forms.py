@@ -49,7 +49,29 @@ def _clean_question_payload(data, existing=None, partial=False):
     elif not options_list:
         options_list = ['Option 1']
 
-    return question_text, question_type, is_required, json.dumps(options_list), placeholder
+    if 'logic_rules' in data:
+        raw_rules = data.get('logic_rules') or []
+        logic_rules_list = []
+        if isinstance(raw_rules, list):
+            for rule in raw_rules:
+                if isinstance(rule, dict):
+                    logic_rules_list.append({
+                        'value': str(rule.get('value', '')).strip(),
+                        'action': str(rule.get('action', 'jump')).strip(),
+                        'target_id': rule.get('target_id')
+                    })
+    elif existing:
+        try:
+            logic_rules_list = json.loads(existing.get('logic_rules') or '[]')
+        except Exception:
+            logic_rules_list = []
+    else:
+        logic_rules_list = []
+
+    if question_type not in ('multiple_choice', 'dropdown', 'yes_no'):
+        logic_rules_list = []
+
+    return question_text, question_type, is_required, json.dumps(options_list), placeholder, json.dumps(logic_rules_list)
 
 
 def _question_to_dict(question):
@@ -63,6 +85,10 @@ def _question_to_dict(question):
         q_dict['options'] = []
     if q_dict['question_type'] not in OPTION_QUESTION_TYPES:
         q_dict['options'] = []
+    try:
+        q_dict['logic_rules'] = json.loads(q_dict.get('logic_rules') or '[]')
+    except Exception:
+        q_dict['logic_rules'] = []
     return q_dict
 
 @forms_bp.route('/forms')
@@ -275,7 +301,7 @@ def add_question(form_id):
         return jsonify({'success': False, 'error': 'Unauthorized'})
     
     try:
-        question_text, question_type, is_required, options, placeholder = _clean_question_payload(
+        question_text, question_type, is_required, options, placeholder, logic_rules = _clean_question_payload(
             request.get_json() or {}
         )
     except ValueError as exc:
@@ -286,9 +312,9 @@ def add_question(form_id):
     order_index = (max_order or 0) + 1
     
     db.execute('''
-        INSERT INTO questions (form_id, question_text, question_type, is_required, options, placeholder, order_index)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (form_id, question_text, question_type, is_required, options, placeholder, order_index))
+        INSERT INTO questions (form_id, question_text, question_type, is_required, options, placeholder, order_index, logic_rules)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (form_id, question_text, question_type, is_required, options, placeholder, order_index, logic_rules))
     db.commit()
     
     question = db.execute('SELECT * FROM questions WHERE form_id = ? ORDER BY id DESC LIMIT 1', (form_id,)).fetchone()
@@ -313,7 +339,7 @@ def update_question(question_id):
         return jsonify({'success': False, 'error': 'Unauthorized'})
     
     try:
-        question_text, question_type, is_required, options, placeholder = _clean_question_payload(
+        question_text, question_type, is_required, options, placeholder, logic_rules = _clean_question_payload(
             request.get_json() or {},
             existing=question,
             partial=True
@@ -323,8 +349,8 @@ def update_question(question_id):
     
     db.execute('''
         UPDATE questions SET question_text = ?, question_type = ?, is_required = ?,
-        options = ?, placeholder = ? WHERE id = ?
-    ''', (question_text, question_type, is_required, options, placeholder, question_id))
+        options = ?, placeholder = ?, logic_rules = ? WHERE id = ?
+    ''', (question_text, question_type, is_required, options, placeholder, logic_rules, question_id))
     db.execute('UPDATE forms SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', (question['form_id'],))
     db.commit()
 
