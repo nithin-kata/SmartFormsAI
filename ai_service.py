@@ -371,9 +371,14 @@ def analyze_responses_template(form_title: str, questions: list, responses_data:
 # Public API — Form Generation
 # ─────────────────────────────────────────────
 
-GEMINI_FORM_SYSTEM = """You are an expert form designer. When given a description, generate a well-structured form with appropriate questions.
+GEMINI_FORM_SYSTEM = """You are an expert form designer. Your sole purpose is to create forms based on user requests.
 
-Return ONLY valid JSON with this exact structure:
+If the user asks for something unrelated to creating a form (like writing a resume, writing code, answering general questions, or casual chat), DO NOT generate a form. Instead, return EXACTLY this JSON:
+{
+    "error": "I can only help you create forms. Please describe the form you'd like to build."
+}
+
+Otherwise, generate a well-structured form and return ONLY valid JSON with this exact structure:
 {
     "title": "Form Title",
     "description": "Brief description of the form",
@@ -401,6 +406,23 @@ def generate_form_from_prompt(api_key: str, prompt: str) -> dict:
     Generate a form from a natural language prompt.
     Uses Gemini API if key is available, otherwise falls back to template engine.
     """
+    prompt_lower = prompt.lower().strip()
+    
+    # Pre-filter obvious non-form requests
+    rejection_phrases = [
+        "create a resume", "write a resume", "prepare a resume", 
+        "write an essay", "tell me a joke", "write code", 
+        "generate code", "build a website", "write a story",
+        "who is", "what is", "where is", "when is", "why is", 
+        "how do", "tell me about", "can you explain"
+    ]
+    if any(phrase in prompt_lower for phrase in rejection_phrases) or prompt_lower in ["resume", "cv"]:
+        return {
+            "success": False, 
+            "error": "I can only help you create forms. Please describe the form you'd like to build.", 
+            "source": "system"
+        }
+
     # Try Gemini first
     if api_key:
         result = call_gemini(api_key, GEMINI_FORM_SYSTEM, f"Create a form for: {prompt}")
@@ -413,6 +435,8 @@ def generate_form_from_prompt(api_key: str, prompt: str) -> dict:
                 elif "```" in content:
                     content = content.split("```")[1].split("```")[0].strip()
                 form_data = json.loads(content)
+                if "error" in form_data:
+                    return {"success": False, "error": form_data["error"], "source": "gemini"}
                 return {"success": True, "data": form_data, "source": "gemini"}
             except json.JSONDecodeError as e:
                 print(f"[AI] Gemini returned invalid JSON, falling back to template. Error: {e}")
