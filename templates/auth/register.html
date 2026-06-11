@@ -140,7 +140,12 @@
                             <input type="password" name="confirm_password" class="form-input" placeholder="Repeat password" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-full">Create account</button>
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label class="form-label">Employee Invite Code <span style="font-weight: normal; color: var(--text-muted);">(Optional)</span></label>
+                        <input type="text" name="invite_code" class="form-input" placeholder="e.g. SMARTFORMS_HR_2026">
+                        <span class="form-hint">Enter the company code to access the HR module. Leave blank if not applicable.</span>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Create account</button>
                 </form>
                 
                 <p class="auth-switch">Already have an account? <a href="/login">Sign in</a></p>

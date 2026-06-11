@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Join HR Module — SmartForms AI{% endblock %}
+{% block page_title %}Employee Access Verification{% endblock %}
+
+{% block content %}
+<div class="grid grid-2" style="max-width: 600px; margin: 0 auto; display: block;">
+    <div class="card">
+        <h2 class="card-title">Join the HR Module</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.95rem;">
+            Enter the secret company passcode below to verify your identity and unlock access to the Document Hub, Notice Board, and Org Chart.
+        </p>
+        
+        <form action="{{ url_for('auth.hr_join') }}" method="POST" class="form-group">
+            <label class="form-label">Employee Invite Code</label>
+            <input type="text" name="invite_code" class="form-input" required placeholder="e.g. SMARTFORMS_HR_2026">
+            
+            <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem; width: 100%;">Verify Access</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

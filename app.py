@@ -21,8 +21,8 @@ def _load_env_file(path):
                     key, _, value = line.partition('=')
                     key = key.strip()
                     value = value.strip()
-                    # Only set if not already in environment
-                    if key and key not in os.environ:
+                    # Always overwrite to ensure auto-reloader picks up .env changes
+                    if key:
                         os.environ[key] = value
     except FileNotFoundError:
         pass

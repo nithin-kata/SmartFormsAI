@@ -32,6 +32,21 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def employee_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Please log in to access this page.', 'error')
+            return redirect(url_for('auth.login'))
+            
+        user = get_current_user()
+        if not user or not dict(user).get('is_employee'):
+            flash('Please enter the employee invite code to access the HR module.', 'info')
+            return redirect(url_for('auth.hr_join'))
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
 def get_current_user():
     from flask import current_app
     from database import get_db

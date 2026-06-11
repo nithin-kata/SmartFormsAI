@@ -13,6 +13,7 @@
     fetch('{{ url_for("hr_orgchart.api_data") }}')
       .then(response => response.json())
       .then(data => {
+        if(data.length === 0) return;
         var dataTable = new google.visualization.DataTable();
         dataTable.addColumn('string', 'Name');
         dataTable.addColumn('string', 'Manager');
@@ -80,7 +81,50 @@
     </div>
 
     <div class="card" style="grid-column: span 2; overflow-x: auto; min-height: 400px; display: flex; justify-content: center; padding: 2rem;">
-        <div id="chart_div"></div>
+        <div id="chart_div">
+            {% if not employees %}
+            <div class="empty-state" style="margin-top: 2rem;">
+                <div class="empty-icon">👥</div>
+                <h3>No Employees Found</h3>
+                <p>Add your first employee to start building the organization chart.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card" style="grid-column: span 2;">
+        <h2 class="card-title">Manage Employees</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Position</th>
+                        <th>Department</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in employees %}
+                    <tr>
+                        <td style="font-weight: 500;">{{ emp.name }}</td>
+                        <td class="text-secondary">{{ emp.position }}</td>
+                        <td class="text-secondary">{{ emp.department }}</td>
+                        <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                            <a href="{{ url_for('hr_orgchart.edit_employee', id=emp.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                            <form action="{{ url_for('hr_orgchart.delete_employee', id=emp.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete {{ emp.name }}? This action cannot be undone.');">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center" style="padding: 2rem;">No employees to manage.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -26,7 +26,7 @@
                 <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem;">{{ ann.title }}</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">{{ ann.content }}</p>
                 <div style="font-size: 0.85rem; color: var(--text-tertiary);">
-                    Posted by <strong>{{ ann.author_name }}</strong> on {{ ann.created_at.split(' ')[0] if ann.created_at else '' }}
+                    Posted by <strong>{{ ann.author_name }}</strong> on {{ (ann.local_created_at|string)[:16] if ann.local_created_at else '' }}
                 </div>
             </div>
             {% else %}

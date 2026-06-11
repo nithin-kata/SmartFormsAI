@@ -35,6 +35,7 @@ def init_db(app):
                 password_hash TEXT NOT NULL,
                 avatar_color TEXT DEFAULT '#6366f1',
                 groq_api_key TEXT DEFAULT '',
+                is_employee INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -130,7 +131,12 @@ def init_db(app):
         try:
             db.execute("ALTER TABLE questions ADD COLUMN logic_rules TEXT DEFAULT '[]'")
         except sqlite3.OperationalError:
-            # Column already exists
+            pass
+            
+        # Migration to add is_employee column to users table
+        try:
+            db.execute("ALTER TABLE users ADD COLUMN is_employee INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
             pass
             
         db.commit()

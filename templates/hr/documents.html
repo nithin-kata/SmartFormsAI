@@ -35,7 +35,7 @@
                     <tr>
                         <td style="font-weight: 500;">{{ doc.title }}</td>
                         <td class="text-secondary">{{ doc.uploader_name }}</td>
-                        <td class="text-secondary">{{ doc.created_at.split(' ')[0] if doc.created_at else '' }}</td>
+                        <td class="text-secondary">{{ (doc.local_created_at|string)[:16] if doc.local_created_at else '' }}</td>
                         <td>
                             <a href="{{ url_for('hr_documents.download', filename=doc.file_name) }}" class="btn btn-secondary btn-sm">Download</a>
                         </td>

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from database import get_db
 from helpers import hash_password, verify_password, get_current_user
 from flask import current_app
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -48,6 +49,7 @@ def register():
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
+        invite_code = request.form.get('invite_code', '').strip()
         
         errors = []
         if not name or len(name) < 2:
@@ -75,9 +77,10 @@ def register():
         avatar_color = random.choice(colors)
         
         password_hash = hash_password(password)
+        is_employee = 1 if invite_code and invite_code == os.environ.get('EMPLOYEE_INVITE_CODE') else 0
         db.execute(
-            'INSERT INTO users (name, email, password_hash, avatar_color) VALUES (?, ?, ?, ?)',
-            (name, email, password_hash, avatar_color)
+            'INSERT INTO users (name, email, password_hash, avatar_color, is_employee) VALUES (?, ?, ?, ?, ?)',
+            (name, email, password_hash, avatar_color, is_employee)
         )
         db.commit()
         
@@ -96,3 +99,29 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
+
+@auth_bp.route('/hr/join', methods=['GET', 'POST'])
+def hr_join():
+    if 'user_id' not in session:
+        flash('Please log in first.', 'error')
+        return redirect(url_for('auth.login'))
+        
+    db = get_db(current_app)
+    user = db.execute('SELECT * FROM users WHERE id = ?', (session['user_id'],)).fetchone()
+    if user and user['is_employee']:
+        flash('You are already an employee.', 'info')
+        return redirect(url_for('dashboard.index'))
+        
+    if request.method == 'POST':
+        import os
+        invite_code = request.form.get('invite_code', '').strip()
+        if invite_code == os.environ.get('EMPLOYEE_INVITE_CODE'):
+            db.execute('UPDATE users SET is_employee = 1 WHERE id = ?', (session['user_id'],))
+            db.commit()
+            flash('Success! You now have access to the HR module.', 'success')
+            return redirect(url_for('hr_announcements.index'))
+        else:
+            flash('Invalid invite code.', 'error')
+            
+    return render_template('auth/hr_join.html')
+
